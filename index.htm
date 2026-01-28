@@ -325,6 +325,15 @@
                 this.maxIterations = 100;
                 this.colorScheme = 'default';
                 
+                // Multi-resolution rendering
+                this.useMultiRes = true;
+                this.currentRenderPass = 0;
+                this.renderPasses = [
+                    { scale: 4, iterations: 0.25 },  // 1/4 resolution, 1/4 iterations
+                    { scale: 2, iterations: 0.5 },   // 1/2 resolution, 1/2 iterations
+                    { scale: 1, iterations: 1.0 }    // Full resolution, full iterations
+                ];
+                
                 // Cosine gradient colors
                 this.cosineBaseColor = { r: 128, g: 128, b: 255 }; // Purple-blue
                 this.cosineAccentColor = { r: 255, g: 128, b: 128 }; // Pink-red
@@ -1267,10 +1276,9 @@
 
                 // Don't clear canvas - keep previous fractal visible while rendering
 
-                if (this.fractalType === 'mandelbrot') {
-                    await this.renderMandelbrot();
-                } else if (this.fractalType === 'julia') {
-                    await this.renderJulia();
+                if (this.fractalType === 'mandelbrot' || this.fractalType === 'julia') {
+                    // Use multi-resolution rendering for computational fractals
+                    await this.renderMultiRes();
                 } else if (this.fractalType === 'koch') {
                     // Clear for geometric fractals
                     this.ctx.fillStyle = '#000';
@@ -1307,59 +1315,45 @@
                 this.loading.classList.remove('active');
             }
 
-            async renderMandelbrot() {
-                const width = this.canvas.width;
-                const height = this.canvas.height;
-                const imageData = this.ctx.createImageData(width, height);
-                const data = imageData.data;
-
-                const scale = 3.5 / (this.zoom * width);
-                const chunkSize = 20; // Update progress every 20 rows
-
-                for (let py = 0; py < height; py++) {
-                    for (let px = 0; px < width; px++) {
-                        const x0 = this.centerX + (px - width / 2) * scale;
-                        const y0 = this.centerY + (py - height / 2) * scale;
-
-                        const iteration = this.mandelbrot(x0, y0);
-                        const [r, g, b] = this.getColor(iteration);
-
-                        const index = (py * width + px) * 4;
-                        data[index] = r;
-                        data[index + 1] = g;
-                        data[index + 2] = b;
-                        data[index + 3] = 255;
-                    }
-
-                    // Update progress but DON'T draw to canvas yet
-                    if (py % chunkSize === 0) {
-                        const progress = (py / height) * 100;
-                        this.updateProgress(progress);
-                        await new Promise(resolve => setTimeout(resolve, 0));
+            async renderMultiRes() {
+                // Progressive multi-resolution rendering
+                const totalPasses = this.renderPasses.length;
+                
+                for (let passIndex = 0; passIndex < totalPasses; passIndex++) {
+                    const pass = this.renderPasses[passIndex];
+                    const passProgress = passIndex / totalPasses;
+                    
+                    if (this.fractalType === 'mandelbrot') {
+                        await this.renderMandelbrotPass(pass, passProgress);
+                    } else if (this.fractalType === 'julia') {
+                        await this.renderJuliaPass(pass, passProgress);
                     }
                 }
-
-                this.updateProgress(100);
-                // Draw complete image all at once
-                this.ctx.putImageData(imageData, 0, 0);
             }
 
-            async renderJulia() {
-                const width = this.canvas.width;
-                const height = this.canvas.height;
+            async renderMandelbrotPass(pass, baseProgress) {
+                const fullWidth = this.canvas.width;
+                const fullHeight = this.canvas.height;
+                const scale = pass.scale;
+                const width = Math.floor(fullWidth / scale);
+                const height = Math.floor(fullHeight / scale);
+                
                 const imageData = this.ctx.createImageData(width, height);
                 const data = imageData.data;
 
-                const scale = 3.5 / (this.zoom * width);
-                const chunkSize = 20; // Update progress every 20 rows
+                const worldScale = 3.5 / (this.zoom * fullWidth);
+                const iterations = Math.floor(this.maxIterations * pass.iterations);
+                const chunkSize = 10;
 
                 for (let py = 0; py < height; py++) {
                     for (let px = 0; px < width; px++) {
-                        const zx = this.centerX + (px - width / 2) * scale;
-                        const zy = this.centerY + (py - height / 2) * scale;
+                        const screenX = px * scale + scale / 2;
+                        const screenY = py * scale + scale / 2;
+                        const x0 = this.centerX + (screenX - fullWidth / 2) * worldScale;
+                        const y0 = this.centerY + (screenY - fullHeight / 2) * worldScale;
 
-                        const iteration = this.julia(zx, zy);
-                        const [r, g, b] = this.getColor(iteration);
+                        const iteration = this.mandelbrotWithIterations(x0, y0, iterations);
+                        const [r, g, b] = this.getColorWithIterations(iteration, iterations);
 
                         const index = (py * width + px) * 4;
                         data[index] = r;
@@ -1368,17 +1362,129 @@
                         data[index + 3] = 255;
                     }
 
-                    // Update progress but DON'T draw to canvas yet
                     if (py % chunkSize === 0) {
-                        const progress = (py / height) * 100;
-                        this.updateProgress(progress);
+                        const passProgressPct = (py / height) * (1.0 / this.renderPasses.length);
+                        const totalProgress = (baseProgress + passProgressPct) * 100;
+                        this.updateProgress(totalProgress);
                         await new Promise(resolve => setTimeout(resolve, 0));
                     }
                 }
 
-                this.updateProgress(100);
-                // Draw complete image all at once
-                this.ctx.putImageData(imageData, 0, 0);
+                // Scale up and draw to canvas
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = width;
+                tempCanvas.height = height;
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCtx.putImageData(imageData, 0, 0);
+                
+                this.ctx.imageSmoothingEnabled = scale > 1;
+                this.ctx.drawImage(tempCanvas, 0, 0, fullWidth, fullHeight);
+            }
+
+            async renderJuliaPass(pass, baseProgress) {
+                const fullWidth = this.canvas.width;
+                const fullHeight = this.canvas.height;
+                const scale = pass.scale;
+                const width = Math.floor(fullWidth / scale);
+                const height = Math.floor(fullHeight / scale);
+                
+                const imageData = this.ctx.createImageData(width, height);
+                const data = imageData.data;
+
+                const worldScale = 3.5 / (this.zoom * fullWidth);
+                const iterations = Math.floor(this.maxIterations * pass.iterations);
+                const chunkSize = 10;
+
+                for (let py = 0; py < height; py++) {
+                    for (let px = 0; px < width; px++) {
+                        const screenX = px * scale + scale / 2;
+                        const screenY = py * scale + scale / 2;
+                        const zx = this.centerX + (screenX - fullWidth / 2) * worldScale;
+                        const zy = this.centerY + (screenY - fullHeight / 2) * worldScale;
+
+                        const iteration = this.juliaWithIterations(zx, zy, iterations);
+                        const [r, g, b] = this.getColorWithIterations(iteration, iterations);
+
+                        const index = (py * width + px) * 4;
+                        data[index] = r;
+                        data[index + 1] = g;
+                        data[index + 2] = b;
+                        data[index + 3] = 255;
+                    }
+
+                    if (py % chunkSize === 0) {
+                        const passProgressPct = (py / height) * (1.0 / this.renderPasses.length);
+                        const totalProgress = (baseProgress + passProgressPct) * 100;
+                        this.updateProgress(totalProgress);
+                        await new Promise(resolve => setTimeout(resolve, 0));
+                    }
+                }
+
+                // Scale up and draw to canvas
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = width;
+                tempCanvas.height = height;
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCtx.putImageData(imageData, 0, 0);
+                
+                this.ctx.imageSmoothingEnabled = scale > 1;
+                this.ctx.drawImage(tempCanvas, 0, 0, fullWidth, fullHeight);
+            }
+
+            mandelbrotWithIterations(cx, cy, maxIter) {
+                let x = 0;
+                let y = 0;
+                let iteration = 0;
+
+                while (x * x + y * y <= 4 && iteration < maxIter) {
+                    const xtemp = x * x - y * y + cx;
+                    y = 2 * x * y + cy;
+                    x = xtemp;
+                    iteration++;
+                }
+
+                // For continuous coloring, add smooth component
+                if (iteration < maxIter) {
+                    const log_zn = Math.log(x * x + y * y) / 2;
+                    const nu = Math.log(log_zn / Math.log(2)) / Math.log(2);
+                    iteration = iteration + 1 - nu;
+                }
+
+                return iteration;
+            }
+
+            juliaWithIterations(zx, zy, maxIter) {
+                let x = zx;
+                let y = zy;
+                let iteration = 0;
+
+                while (x * x + y * y <= 4 && iteration < maxIter) {
+                    const xtemp = x * x - y * y + this.juliaReal;
+                    y = 2 * x * y + this.juliaImag;
+                    x = xtemp;
+                    iteration++;
+                }
+
+                // For continuous coloring, add smooth component
+                if (iteration < maxIter) {
+                    const log_zn = Math.log(x * x + y * y) / 2;
+                    const nu = Math.log(log_zn / Math.log(2)) / Math.log(2);
+                    iteration = iteration + 1 - nu;
+                }
+
+                return iteration;
+            }
+
+            getColorWithIterations(iteration, maxIter) {
+                if (iteration >= maxIter) {
+                    return [0, 0, 0];
+                }
+
+                const savedMax = this.maxIterations;
+                this.maxIterations = maxIter;
+                const color = this.getColor(iteration);
+                this.maxIterations = savedMax;
+                return color;
             }
 
             renderKoch() {
