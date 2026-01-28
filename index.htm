@@ -134,9 +134,33 @@
             <label>Fractal Type</label>
             <select id="fractalType">
                 <option value="mandelbrot">Mandelbrot Set</option>
+                <option value="julia">Julia Set</option>
                 <option value="koch">Koch Snowflake</option>
                 <option value="sierpinski">Sierpinski Triangle</option>
+                <option value="dragon">Dragon Curve</option>
+                <option value="barnsley">Barnsley Fern</option>
+                <option value="menger">Menger Sponge</option>
             </select>
+        </div>
+
+        <div class="menu-section" id="juliaControls" style="display: none;">
+            <label>Julia Set Preset</label>
+            <select id="juliaPreset">
+                <option value="ship">Ghost Ship (-0.8 + 0.156i)</option>
+                <option value="dendrite">Dendrite (-0.4 + 0.6i)</option>
+                <option value="spiral">Spiral (-0.7269 + 0.1889i)</option>
+                <option value="dragon">Dragon (-0.835 - 0.2321i)</option>
+                <option value="douady">Douady Rabbit (-0.123 + 0.745i)</option>
+                <option value="siegel">Siegel Disk (-0.391 - 0.587i)</option>
+                <option value="custom">Custom Parameters</option>
+            </select>
+        </div>
+
+        <div class="menu-section" id="juliaParams" style="display: none;">
+            <label>Real Part (c_real)</label>
+            <input type="number" id="juliaReal" value="-0.8" step="0.001" min="-2" max="2">
+            <label style="margin-top: 8px;">Imaginary Part (c_imag)</label>
+            <input type="number" id="juliaImag" value="0.156" step="0.001" min="-2" max="2">
         </div>
 
         <div class="menu-section">
@@ -172,6 +196,20 @@
                 this.centerY = 0;
                 this.zoom = 1;
                 this.maxIterations = 100;
+                
+                // Julia Set parameters
+                this.juliaReal = -0.8;
+                this.juliaImag = 0.156;
+                
+                // Julia Set presets
+                this.juliaPresets = {
+                    ship: { real: -0.8, imag: 0.156, name: 'Ghost Ship' },
+                    dendrite: { real: -0.4, imag: 0.6, name: 'Dendrite' },
+                    spiral: { real: -0.7269, imag: 0.1889, name: 'Spiral' },
+                    dragon: { real: -0.835, imag: -0.2321, name: 'Dragon' },
+                    douady: { real: -0.123, imag: 0.745, name: 'Douady Rabbit' },
+                    siegel: { real: -0.391, imag: -0.587, name: 'Siegel Disk' }
+                };
                 
                 // Mouse interaction
                 this.isDragging = false;
@@ -299,7 +337,34 @@
                 // Menu controls
                 document.getElementById('fractalType').addEventListener('change', (e) => {
                     this.fractalType = e.target.value;
+                    this.updateJuliaControls();
                     this.resetView();
+                    this.render();
+                });
+
+                document.getElementById('juliaPreset').addEventListener('change', (e) => {
+                    const preset = e.target.value;
+                    if (preset !== 'custom' && this.juliaPresets[preset]) {
+                        this.juliaReal = this.juliaPresets[preset].real;
+                        this.juliaImag = this.juliaPresets[preset].imag;
+                        document.getElementById('juliaReal').value = this.juliaReal;
+                        document.getElementById('juliaImag').value = this.juliaImag;
+                        document.getElementById('juliaParams').style.display = 'none';
+                    } else {
+                        document.getElementById('juliaParams').style.display = 'block';
+                    }
+                    this.render();
+                });
+
+                document.getElementById('juliaReal').addEventListener('input', (e) => {
+                    this.juliaReal = parseFloat(e.target.value);
+                    document.getElementById('juliaPreset').value = 'custom';
+                    this.render();
+                });
+
+                document.getElementById('juliaImag').addEventListener('input', (e) => {
+                    this.juliaImag = parseFloat(e.target.value);
+                    document.getElementById('juliaPreset').value = 'custom';
                     this.render();
                 });
 
@@ -317,11 +382,30 @@
                 });
             }
 
+            updateJuliaControls() {
+                const juliaControls = document.getElementById('juliaControls');
+                const juliaParams = document.getElementById('juliaParams');
+                
+                if (this.fractalType === 'julia') {
+                    juliaControls.style.display = 'block';
+                    // Show params only if custom is selected
+                    const preset = document.getElementById('juliaPreset').value;
+                    juliaParams.style.display = preset === 'custom' ? 'block' : 'none';
+                } else {
+                    juliaControls.style.display = 'none';
+                    juliaParams.style.display = 'none';
+                }
+            }
+
             resetView() {
                 if (this.fractalType === 'mandelbrot') {
                     this.centerX = -0.5;
                     this.centerY = 0;
                     this.zoom = 1;
+                } else if (this.fractalType === 'julia') {
+                    this.centerX = 0;
+                    this.centerY = 0;
+                    this.zoom = 1.5;
                 } else if (this.fractalType === 'koch') {
                     this.centerX = 0;
                     this.centerY = 0;
@@ -330,6 +414,18 @@
                     this.centerX = 0;
                     this.centerY = 0.1;
                     this.zoom = 1.8;
+                } else if (this.fractalType === 'dragon') {
+                    this.centerX = 0;
+                    this.centerY = 0;
+                    this.zoom = 2.5;
+                } else if (this.fractalType === 'barnsley') {
+                    this.centerX = 0;
+                    this.centerY = -0.2;
+                    this.zoom = 1.2;
+                } else if (this.fractalType === 'menger') {
+                    this.centerX = 0;
+                    this.centerY = 0;
+                    this.zoom = 1.5;
                 }
             }
 
@@ -407,6 +503,21 @@
                 while (x * x + y * y <= 4 && iteration < this.maxIterations) {
                     const xtemp = x * x - y * y + cx;
                     y = 2 * x * y + cy;
+                    x = xtemp;
+                    iteration++;
+                }
+
+                return iteration;
+            }
+
+            julia(zx, zy) {
+                let x = zx;
+                let y = zy;
+                let iteration = 0;
+
+                while (x * x + y * y <= 4 && iteration < this.maxIterations) {
+                    const xtemp = x * x - y * y + this.juliaReal;
+                    y = 2 * x * y + this.juliaImag;
                     x = xtemp;
                     iteration++;
                 }
@@ -519,6 +630,110 @@
                 this.subdivideTriangle(m3, m2, v3, depth - 1, triangles);
             }
 
+            // Dragon Curve methods
+            generateDragonCurve(depth) {
+                let sequence = [1]; // Start with a single right turn
+                
+                // Build the dragon curve sequence
+                for (let i = 0; i < depth; i++) {
+                    const newSequence = [...sequence];
+                    newSequence.push(1); // Add a right turn
+                    // Add reversed and flipped sequence
+                    for (let j = sequence.length - 1; j >= 0; j--) {
+                        newSequence.push(-sequence[j]);
+                    }
+                    sequence = newSequence;
+                }
+
+                // Convert sequence to points
+                const points = [[0, 0]];
+                let x = 0, y = 0;
+                let direction = 0; // 0 = right, 1 = up, 2 = left, 3 = down
+                const stepSize = 0.4 / Math.pow(Math.sqrt(2), depth);
+
+                for (const turn of sequence) {
+                    direction = (direction + turn + 4) % 4;
+                    
+                    switch (direction) {
+                        case 0: x += stepSize; break; // right
+                        case 1: y -= stepSize; break; // up
+                        case 2: x -= stepSize; break; // left
+                        case 3: y += stepSize; break; // down
+                    }
+                    
+                    points.push([x, y]);
+                }
+
+                return points;
+            }
+
+            // Barnsley Fern methods
+            generateBarnsleyFern(iterations) {
+                const points = [];
+                let x = 0, y = 0;
+
+                for (let i = 0; i < iterations; i++) {
+                    const r = Math.random();
+                    let nextX, nextY;
+
+                    if (r < 0.01) {
+                        // Stem
+                        nextX = 0;
+                        nextY = 0.16 * y;
+                    } else if (r < 0.86) {
+                        // Successively smaller leaflets
+                        nextX = 0.85 * x + 0.04 * y;
+                        nextY = -0.04 * x + 0.85 * y + 1.6;
+                    } else if (r < 0.93) {
+                        // Largest left-hand leaflet
+                        nextX = 0.2 * x - 0.26 * y;
+                        nextY = 0.23 * x + 0.22 * y + 1.6;
+                    } else {
+                        // Largest right-hand leaflet
+                        nextX = -0.15 * x + 0.28 * y;
+                        nextY = 0.26 * x + 0.24 * y + 0.44;
+                    }
+
+                    x = nextX;
+                    y = nextY;
+
+                    // Skip first few iterations (transient behavior)
+                    if (i > 20) {
+                        points.push([x / 11, y / 11 - 0.5]); // Normalize to fit view
+                    }
+                }
+
+                return points;
+            }
+
+            // Menger Sponge methods (2D cross-section)
+            generateMengerSponge(depth) {
+                const squares = [];
+                this.subdivideMengerSquare(0, 0, 0.8, depth, squares);
+                return squares;
+            }
+
+            subdivideMengerSquare(x, y, size, depth, squares) {
+                if (depth === 0) {
+                    squares.push({ x, y, size });
+                    return;
+                }
+
+                const newSize = size / 3;
+
+                // Divide into 9 squares, skip the middle one
+                for (let i = 0; i < 3; i++) {
+                    for (let j = 0; j < 3; j++) {
+                        // Skip center square
+                        if (i === 1 && j === 1) continue;
+
+                        const newX = x + (i - 1) * newSize;
+                        const newY = y + (j - 1) * newSize;
+                        this.subdivideMengerSquare(newX, newY, newSize, depth - 1, squares);
+                    }
+                }
+            }
+
             async render() {
                 this.loading.classList.add('active');
                 
@@ -534,10 +749,18 @@
 
                 if (this.fractalType === 'mandelbrot') {
                     this.renderMandelbrot();
+                } else if (this.fractalType === 'julia') {
+                    this.renderJulia();
                 } else if (this.fractalType === 'koch') {
                     this.renderKoch();
                 } else if (this.fractalType === 'sierpinski') {
                     this.renderSierpinski();
+                } else if (this.fractalType === 'dragon') {
+                    this.renderDragon();
+                } else if (this.fractalType === 'barnsley') {
+                    this.renderBarnsley();
+                } else if (this.fractalType === 'menger') {
+                    this.renderMenger();
                 }
 
                 this.loading.classList.remove('active');
@@ -557,6 +780,33 @@
                         const y0 = this.centerY + (py - height / 2) * scale;
 
                         const iteration = this.mandelbrot(x0, y0);
+                        const [r, g, b] = this.getColor(iteration);
+
+                        const index = (py * width + px) * 4;
+                        data[index] = r;
+                        data[index + 1] = g;
+                        data[index + 2] = b;
+                        data[index + 3] = 255;
+                    }
+                }
+
+                this.ctx.putImageData(imageData, 0, 0);
+            }
+
+            renderJulia() {
+                const width = this.canvas.width;
+                const height = this.canvas.height;
+                const imageData = this.ctx.createImageData(width, height);
+                const data = imageData.data;
+
+                const scale = 3.5 / (this.zoom * width);
+
+                for (let py = 0; py < height; py++) {
+                    for (let px = 0; px < width; px++) {
+                        const zx = this.centerX + (px - width / 2) * scale;
+                        const zy = this.centerY + (py - height / 2) * scale;
+
+                        const iteration = this.julia(zx, zy);
                         const [r, g, b] = this.getColor(iteration);
 
                         const index = (py * width + px) * 4;
@@ -629,6 +879,68 @@
                     this.ctx.closePath();
                     this.ctx.fill();
                     this.ctx.stroke();
+                }
+            }
+
+            renderDragon() {
+                const depth = Math.min(Math.floor(this.maxIterations / 10), 16);
+                const points = this.generateDragonCurve(depth);
+
+                this.ctx.strokeStyle = '#FFD700';
+                this.ctx.lineWidth = 2;
+                this.ctx.lineJoin = 'round';
+                this.ctx.lineCap = 'round';
+
+                this.ctx.beginPath();
+                
+                for (let i = 0; i < points.length; i++) {
+                    const [wx, wy] = points[i];
+                    const sx = this.worldToScreenX(wx);
+                    const sy = this.worldToScreenY(wy);
+
+                    if (i === 0) {
+                        this.ctx.moveTo(sx, sy);
+                    } else {
+                        this.ctx.lineTo(sx, sy);
+                    }
+                }
+
+                this.ctx.stroke();
+            }
+
+            renderBarnsley() {
+                const iterations = Math.min(this.maxIterations * 1000, 100000);
+                const points = this.generateBarnsleyFern(iterations);
+
+                this.ctx.fillStyle = '#00FF00';
+                
+                for (const [wx, wy] of points) {
+                    const sx = this.worldToScreenX(wx);
+                    const sy = this.worldToScreenY(wy);
+                    
+                    this.ctx.fillRect(sx, sy, 1, 1);
+                }
+            }
+
+            renderMenger() {
+                const depth = Math.min(Math.floor(this.maxIterations / 25), 5);
+                const squares = this.generateMengerSponge(depth);
+
+                this.ctx.fillStyle = '#9370DB';
+                this.ctx.strokeStyle = '#8A2BE2';
+                this.ctx.lineWidth = 1;
+
+                for (const square of squares) {
+                    const x1 = this.worldToScreenX(square.x - square.size / 2);
+                    const y1 = this.worldToScreenY(square.y - square.size / 2);
+                    const x2 = this.worldToScreenX(square.x + square.size / 2);
+                    const y2 = this.worldToScreenY(square.y + square.size / 2);
+                    
+                    const width = x2 - x1;
+                    const height = y2 - y1;
+
+                    this.ctx.fillRect(x1, y1, width, height);
+                    this.ctx.strokeRect(x1, y1, width, height);
                 }
             }
 
