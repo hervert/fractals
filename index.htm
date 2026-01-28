@@ -98,6 +98,11 @@
             background: #0b7dda;
         }
 
+        button.active {
+            background: #7B1FA2;
+            box-shadow: 0 0 0 3px rgba(156, 39, 176, 0.3);
+        }
+
         .info {
             font-size: 11px;
             color: #888;
@@ -180,6 +185,19 @@
                 <option value="siegel">Siegel Disk (-0.391 - 0.587i)</option>
                 <option value="custom">Custom Parameters</option>
             </select>
+            
+            <button id="juliaClickBtn" style="width: 100%; margin-top: 10px; background: #9C27B0;">
+                Click Mandelbrot to Set Julia
+            </button>
+        </div>
+
+        <div class="menu-section" id="mandelbrotControls" style="display: none;">
+            <button id="mandelbrotClickBtn" style="width: 100%; background: #9C27B0;">
+                Click to Pick Julia Parameter
+            </button>
+            <div id="clickModeIndicator" style="display: none; margin-top: 8px; padding: 8px; background: rgba(156, 39, 176, 0.1); border-radius: 4px; font-size: 11px; color: #9C27B0; text-align: center;">
+                Click anywhere on the fractal
+            </div>
         </div>
 
         <div class="menu-section" id="juliaParams" style="display: none;">
@@ -334,6 +352,9 @@
                     { scale: 1, iterations: 1.0 }    // Full resolution, full iterations
                 ];
                 
+                // Click-to-Julia mode
+                this.juliaClickMode = false;
+                
                 // Cosine gradient colors
                 this.cosineBaseColor = { r: 128, g: 128, b: 255 }; // Purple-blue
                 this.cosineAccentColor = { r: 255, g: 128, b: 128 }; // Pink-red
@@ -409,15 +430,20 @@
                         this.lastX = e.clientX;
                         this.lastY = e.clientY;
                     } 
-                    // Left-click for zoom box
+                    // Left-click for zoom box or Julia parameter selection
                     else if (e.button === 0 && !e.ctrlKey) {
-                        this.isZoomBoxing = true;
-                        this.zoomBoxStart.x = e.clientX;
-                        this.zoomBoxStart.y = e.clientY;
-                        this.zoomBoxEnd.x = e.clientX;
-                        this.zoomBoxEnd.y = e.clientY;
-                        // Save current canvas state
-                        this.savedImageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+                        // Check if in Julia click mode
+                        if (this.juliaClickMode && this.fractalType === 'mandelbrot') {
+                            this.handleJuliaClick(e.clientX, e.clientY);
+                        } else {
+                            this.isZoomBoxing = true;
+                            this.zoomBoxStart.x = e.clientX;
+                            this.zoomBoxStart.y = e.clientY;
+                            this.zoomBoxEnd.x = e.clientX;
+                            this.zoomBoxEnd.y = e.clientY;
+                            // Save current canvas state
+                            this.savedImageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+                        }
                     }
                 });
 
@@ -511,9 +537,42 @@
                 document.getElementById('fractalType').addEventListener('change', (e) => {
                     this.fractalType = e.target.value;
                     this.updateJuliaControls();
+                    this.updateCosineControls();
                     this.resetView();
                     this.render();
                 });
+
+                // Julia click mode buttons
+                const mandelbrotClickBtn = document.getElementById('mandelbrotClickBtn');
+                const juliaClickBtn = document.getElementById('juliaClickBtn');
+                const clickModeIndicator = document.getElementById('clickModeIndicator');
+
+                if (mandelbrotClickBtn) {
+                    mandelbrotClickBtn.addEventListener('click', () => {
+                        this.juliaClickMode = !this.juliaClickMode;
+                        if (this.juliaClickMode) {
+                            mandelbrotClickBtn.classList.add('active');
+                            mandelbrotClickBtn.textContent = 'Click Mode: ON';
+                            clickModeIndicator.style.display = 'block';
+                        } else {
+                            mandelbrotClickBtn.classList.remove('active');
+                            mandelbrotClickBtn.textContent = 'Click to Pick Julia Parameter';
+                            clickModeIndicator.style.display = 'none';
+                        }
+                    });
+                }
+
+                if (juliaClickBtn) {
+                    juliaClickBtn.addEventListener('click', () => {
+                        // Switch to Mandelbrot and enable click mode
+                        this.fractalType = 'mandelbrot';
+                        document.getElementById('fractalType').value = 'mandelbrot';
+                        this.juliaClickMode = true;
+                        this.updateJuliaControls();
+                        this.resetView();
+                        this.render();
+                    });
+                }
 
                 document.getElementById('juliaPreset').addEventListener('change', (e) => {
                     const preset = e.target.value;
@@ -635,15 +694,33 @@
             updateJuliaControls() {
                 const juliaControls = document.getElementById('juliaControls');
                 const juliaParams = document.getElementById('juliaParams');
+                const mandelbrotControls = document.getElementById('mandelbrotControls');
+                const mandelbrotClickBtn = document.getElementById('mandelbrotClickBtn');
+                const clickModeIndicator = document.getElementById('clickModeIndicator');
                 
                 if (this.fractalType === 'julia') {
                     juliaControls.style.display = 'block';
+                    mandelbrotControls.style.display = 'none';
                     // Show params only if custom is selected
                     const preset = document.getElementById('juliaPreset').value;
                     juliaParams.style.display = preset === 'custom' ? 'block' : 'none';
+                } else if (this.fractalType === 'mandelbrot') {
+                    juliaControls.style.display = 'none';
+                    mandelbrotControls.style.display = 'block';
+                    // Update button state
+                    if (this.juliaClickMode) {
+                        mandelbrotClickBtn.classList.add('active');
+                        mandelbrotClickBtn.textContent = 'Click Mode: ON';
+                        clickModeIndicator.style.display = 'block';
+                    } else {
+                        mandelbrotClickBtn.classList.remove('active');
+                        mandelbrotClickBtn.textContent = 'Click to Pick Julia Parameter';
+                        clickModeIndicator.style.display = 'none';
+                    }
                 } else {
                     juliaControls.style.display = 'none';
                     juliaParams.style.display = 'none';
+                    mandelbrotControls.style.display = 'none';
                 }
             }
 
@@ -677,6 +754,33 @@
                         document.getElementById('cubehelixControls').style.display = 'block';
                         break;
                 }
+            }
+
+            handleJuliaClick(screenX, screenY) {
+                // Convert screen coordinates to Mandelbrot coordinates
+                const worldX = this.screenToWorldX(screenX);
+                const worldY = this.screenToWorldY(screenY);
+                
+                // Set Julia parameters to clicked point
+                this.juliaReal = worldX;
+                this.juliaImag = worldY;
+                
+                // Update UI
+                document.getElementById('juliaReal').value = this.juliaReal.toFixed(4);
+                document.getElementById('juliaImag').value = this.juliaImag.toFixed(4);
+                document.getElementById('juliaPreset').value = 'custom';
+                
+                // Switch to Julia set
+                this.fractalType = 'julia';
+                document.getElementById('fractalType').value = 'julia';
+                
+                // Disable click mode
+                this.juliaClickMode = false;
+                
+                // Update UI and render
+                this.updateJuliaControls();
+                this.resetView();
+                this.render();
             }
 
             hexToRgb(hex) {
