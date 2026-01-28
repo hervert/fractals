@@ -213,10 +213,16 @@
 
         <div class="menu-section" id="cosineControls" style="display: none;">
             <label style="margin-bottom: 10px; display: block;">Base Color</label>
-            <input type="color" id="cosineBaseColor" value="#8080ff" style="width: 100%; height: 35px; border: none; border-radius: 4px; cursor: pointer;">
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <input type="color" id="cosineBaseColor" value="#8080ff" style="flex: 1; height: 35px; border: none; border-radius: 4px; cursor: pointer;">
+                <div id="cosineBasePreview" style="width: 35px; height: 35px; border-radius: 4px; background: #8080ff; border: 2px solid #ddd;"></div>
+            </div>
             
             <label style="margin-top: 12px; margin-bottom: 10px; display: block;">Accent Color</label>
-            <input type="color" id="cosineAccentColor" value="#ff8080" style="width: 100%; height: 35px; border: none; border-radius: 4px; cursor: pointer;">
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <input type="color" id="cosineAccentColor" value="#ff8080" style="flex: 1; height: 35px; border: none; border-radius: 4px; cursor: pointer;">
+                <div id="cosineAccentPreview" style="width: 35px; height: 35px; border-radius: 4px; background: #ff8080; border: 2px solid #ddd;"></div>
+            </div>
         </div>
 
         <div class="menu-section" id="hslControls" style="display: none;">
@@ -234,19 +240,31 @@
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                 <div>
                     <label style="font-size: 10px; color: #666;">Start</label>
-                    <input type="color" id="bezierColor0" value="#0a1464" style="width: 100%; height: 30px; border: none; border-radius: 4px; cursor: pointer;">
+                    <div style="display: flex; gap: 4px;">
+                        <input type="color" id="bezierColor0" value="#0a1464" style="flex: 1; height: 30px; border: none; border-radius: 4px; cursor: pointer;">
+                        <div id="bezierPreview0" style="width: 30px; height: 30px; border-radius: 4px; background: #0a1464; border: 1px solid #ddd;"></div>
+                    </div>
                 </div>
                 <div>
                     <label style="font-size: 10px; color: #666;">Point 1</label>
-                    <input type="color" id="bezierColor1" value="#0096c8" style="width: 100%; height: 30px; border: none; border-radius: 4px; cursor: pointer;">
+                    <div style="display: flex; gap: 4px;">
+                        <input type="color" id="bezierColor1" value="#0096c8" style="flex: 1; height: 30px; border: none; border-radius: 4px; cursor: pointer;">
+                        <div id="bezierPreview1" style="width: 30px; height: 30px; border-radius: 4px; background: #0096c8; border: 1px solid #ddd;"></div>
+                    </div>
                 </div>
                 <div>
                     <label style="font-size: 10px; color: #666;">Point 2</label>
-                    <input type="color" id="bezierColor2" value="#ffdc32" style="width: 100%; height: 30px; border: none; border-radius: 4px; cursor: pointer;">
+                    <div style="display: flex; gap: 4px;">
+                        <input type="color" id="bezierColor2" value="#ffdc32" style="flex: 1; height: 30px; border: none; border-radius: 4px; cursor: pointer;">
+                        <div id="bezierPreview2" style="width: 30px; height: 30px; border-radius: 4px; background: #ffdc32; border: 1px solid #ddd;"></div>
+                    </div>
                 </div>
                 <div>
                     <label style="font-size: 10px; color: #666;">End</label>
-                    <input type="color" id="bezierColor3" value="#c8320a" style="width: 100%; height: 30px; border: none; border-radius: 4px; cursor: pointer;">
+                    <div style="display: flex; gap: 4px;">
+                        <input type="color" id="bezierColor3" value="#c8320a" style="flex: 1; height: 30px; border: none; border-radius: 4px; cursor: pointer;">
+                        <div id="bezierPreview3" style="width: 30px; height: 30px; border-radius: 4px; background: #c8320a; border: 1px solid #ddd;"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -352,6 +370,9 @@
                 this.zoomBoxStart = { x: 0, y: 0 };
                 this.zoomBoxEnd = { x: 0, y: 0 };
                 this.savedImageData = null; // For storing canvas state during zoom box
+                
+                // Debounce timers for color controls
+                this.colorDebounceTimer = null;
                 
                 this.setupCanvas();
                 this.setupEventListeners();
@@ -502,12 +523,16 @@
                 document.getElementById('juliaReal').addEventListener('input', (e) => {
                     this.juliaReal = parseFloat(e.target.value);
                     document.getElementById('juliaPreset').value = 'custom';
+                });
+                document.getElementById('juliaReal').addEventListener('change', (e) => {
                     this.render();
                 });
 
                 document.getElementById('juliaImag').addEventListener('input', (e) => {
                     this.juliaImag = parseFloat(e.target.value);
                     document.getElementById('juliaPreset').value = 'custom';
+                });
+                document.getElementById('juliaImag').addEventListener('change', (e) => {
                     this.render();
                 });
 
@@ -524,25 +549,31 @@
                 document.getElementById('cosineBaseColor').addEventListener('input', (e) => {
                     const hex = e.target.value;
                     this.cosineBaseColor = this.hexToRgb(hex);
-                    this.render();
+                    document.getElementById('cosineBasePreview').style.background = hex;
+                    this.debouncedRender();
                 });
 
                 document.getElementById('cosineAccentColor').addEventListener('input', (e) => {
                     const hex = e.target.value;
                     this.cosineAccentColor = this.hexToRgb(hex);
-                    this.render();
+                    document.getElementById('cosineAccentPreview').style.background = hex;
+                    this.debouncedRender();
                 });
 
                 // HSL controls
                 document.getElementById('hslStartHue').addEventListener('input', (e) => {
                     this.hslStartHue = parseInt(e.target.value);
                     document.getElementById('hslStartHueValue').textContent = this.hslStartHue + '°';
+                });
+                document.getElementById('hslStartHue').addEventListener('change', (e) => {
                     this.render();
                 });
 
                 document.getElementById('hslEndHue').addEventListener('input', (e) => {
                     this.hslEndHue = parseInt(e.target.value);
                     document.getElementById('hslEndHueValue').textContent = this.hslEndHue + '°';
+                });
+                document.getElementById('hslEndHue').addEventListener('change', (e) => {
                     this.render();
                 });
 
@@ -550,7 +581,8 @@
                 for (let i = 0; i < 4; i++) {
                     document.getElementById(`bezierColor${i}`).addEventListener('input', (e) => {
                         this.bezierColors[i] = this.hexToRgb(e.target.value);
-                        this.render();
+                        document.getElementById(`bezierPreview${i}`).style.background = e.target.value;
+                        this.debouncedRender();
                     });
                 }
 
@@ -558,6 +590,8 @@
                 document.getElementById('complementaryHue').addEventListener('input', (e) => {
                     this.complementaryHue = parseInt(e.target.value);
                     document.getElementById('complementaryHueValue').textContent = this.complementaryHue + '°';
+                });
+                document.getElementById('complementaryHue').addEventListener('change', (e) => {
                     this.render();
                 });
 
@@ -565,6 +599,8 @@
                 document.getElementById('triadicHue').addEventListener('input', (e) => {
                     this.triadicHue = parseInt(e.target.value);
                     document.getElementById('triadicHueValue').textContent = this.triadicHue + '°';
+                });
+                document.getElementById('triadicHue').addEventListener('change', (e) => {
                     this.render();
                 });
 
@@ -572,6 +608,8 @@
                 document.getElementById('cubehelixRotations').addEventListener('input', (e) => {
                     this.cubehelixRotations = parseFloat(e.target.value);
                     document.getElementById('cubehelixRotationsValue').textContent = this.cubehelixRotations.toFixed(1);
+                });
+                document.getElementById('cubehelixRotations').addEventListener('change', (e) => {
                     this.render();
                 });
 
@@ -639,6 +677,17 @@
                     g: parseInt(result[2], 16),
                     b: parseInt(result[3], 16)
                 } : { r: 128, g: 128, b: 255 };
+            }
+
+            debouncedRender(delay = 150) {
+                // Clear existing timer
+                if (this.colorDebounceTimer) {
+                    clearTimeout(this.colorDebounceTimer);
+                }
+                // Set new timer
+                this.colorDebounceTimer = setTimeout(() => {
+                    this.render();
+                }, delay);
             }
 
             updateProgress(percent) {
