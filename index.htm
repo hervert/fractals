@@ -667,10 +667,15 @@
 
             getColorContinuous(iteration) {
                 // Continuous coloring using smooth iteration count
-                // This takes advantage of the fractional iteration values
-                const hue = (iteration * 10) % 360;
-                const saturation = 100;
-                const lightness = iteration < this.maxIterations ? 50 : 0;
+                // Slower hue cycling and modulated saturation/lightness for smoother appearance
+                
+                // Slow down the hue change significantly
+                const hue = (iteration * 3) % 360;
+                
+                // Vary saturation and lightness based on iteration for depth
+                // This creates more organic, less jarring transitions
+                const saturation = 70 + 30 * Math.sin(iteration * 0.1);
+                const lightness = 40 + 20 * Math.cos(iteration * 0.15);
                 
                 return this.hslToRgb(hue, saturation, lightness);
             }
