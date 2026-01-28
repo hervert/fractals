@@ -198,12 +198,7 @@
             <label>Color Scheme</label>
             <select id="colorScheme">
                 <option value="default">Default (Polynomial)</option>
-                <option value="cosine1">Cosine: Purple-Blue</option>
-                <option value="cosine2">Cosine: Fire</option>
-                <option value="cosine3">Cosine: Ocean</option>
-                <option value="cosine4">Cosine: Rainbow</option>
-                <option value="cosine5">Cosine: Sunset</option>
-                <option value="cosine6">Cosine: Forest</option>
+                <option value="cosine">Cosine Gradient (Custom)</option>
                 <option value="continuous">Continuous (HSL)</option>
                 <option value="hsl">HSL Interpolation</option>
                 <option value="golden">Golden Ratio</option>
@@ -214,6 +209,14 @@
                 <option value="triadic">Triadic</option>
                 <option value="stripe">Stripe Averaging</option>
             </select>
+        </div>
+
+        <div class="menu-section" id="cosineControls" style="display: none;">
+            <label style="margin-bottom: 10px; display: block;">Base Color</label>
+            <input type="color" id="cosineBaseColor" value="#8080ff" style="width: 100%; height: 35px; border: none; border-radius: 4px; cursor: pointer;">
+            
+            <label style="margin-top: 12px; margin-bottom: 10px; display: block;">Accent Color</label>
+            <input type="color" id="cosineAccentColor" value="#ff8080" style="width: 100%; height: 35px; border: none; border-radius: 4px; cursor: pointer;">
         </div>
 
         <div class="button-group">
@@ -253,6 +256,10 @@
                 this.zoom = 1;
                 this.maxIterations = 100;
                 this.colorScheme = 'default';
+                
+                // Cosine gradient colors
+                this.cosineBaseColor = { r: 128, g: 128, b: 255 }; // Purple-blue
+                this.cosineAccentColor = { r: 255, g: 128, b: 128 }; // Pink-red
                 
                 // Julia Set parameters
                 this.juliaReal = -0.8;
@@ -441,6 +448,19 @@
 
                 document.getElementById('colorScheme').addEventListener('change', (e) => {
                     this.colorScheme = e.target.value;
+                    this.updateCosineControls();
+                    this.render();
+                });
+
+                document.getElementById('cosineBaseColor').addEventListener('input', (e) => {
+                    const hex = e.target.value;
+                    this.cosineBaseColor = this.hexToRgb(hex);
+                    this.render();
+                });
+
+                document.getElementById('cosineAccentColor').addEventListener('input', (e) => {
+                    const hex = e.target.value;
+                    this.cosineAccentColor = this.hexToRgb(hex);
                     this.render();
                 });
 
@@ -467,6 +487,25 @@
                     juliaControls.style.display = 'none';
                     juliaParams.style.display = 'none';
                 }
+            }
+
+            updateCosineControls() {
+                const cosineControls = document.getElementById('cosineControls');
+                
+                if (this.colorScheme === 'cosine') {
+                    cosineControls.style.display = 'block';
+                } else {
+                    cosineControls.style.display = 'none';
+                }
+            }
+
+            hexToRgb(hex) {
+                const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+                return result ? {
+                    r: parseInt(result[1], 16),
+                    g: parseInt(result[2], 16),
+                    b: parseInt(result[3], 16)
+                } : { r: 128, g: 128, b: 255 };
             }
 
             updateProgress(percent) {
@@ -622,12 +661,7 @@
                 switch(this.colorScheme) {
                     case 'default':
                         return this.getColorDefault(iteration);
-                    case 'cosine1':
-                    case 'cosine2':
-                    case 'cosine3':
-                    case 'cosine4':
-                    case 'cosine5':
-                    case 'cosine6':
+                    case 'cosine':
                         return this.getColorCosine(iteration);
                     case 'continuous':
                         return this.getColorContinuous(iteration);
@@ -662,49 +696,40 @@
             }
 
             getColorCosine(iteration) {
-                // Cosine gradient: color = a + b * cos(2π * (c * t + d))
-                // Different presets for different color schemes
+                // Cosine gradient using user-selected base and accent colors
                 const t = iteration / this.maxIterations;
                 
-                let a, b, c, d;
+                // Convert user colors to normalized values (0-1 range)
+                const base = {
+                    r: this.cosineBaseColor.r / 255,
+                    g: this.cosineBaseColor.g / 255,
+                    b: this.cosineBaseColor.b / 255
+                };
                 
-                if (this.colorScheme === 'cosine1') {
-                    // Purple and blue tones
-                    a = [0.5, 0.5, 0.5];
-                    b = [0.5, 0.5, 0.5];
-                    c = [1.0, 1.0, 1.0];
-                    d = [0.0, 0.33, 0.67];
-                } else if (this.colorScheme === 'cosine2') {
-                    // Fire colors
-                    a = [0.5, 0.5, 0.5];
-                    b = [0.5, 0.5, 0.5];
-                    c = [1.0, 1.0, 1.0];
-                    d = [0.0, 0.10, 0.20];
-                } else if (this.colorScheme === 'cosine3') {
-                    // Ocean colors
-                    a = [0.5, 0.5, 0.5];
-                    b = [0.5, 0.5, 0.5];
-                    c = [1.0, 1.0, 1.0];
-                    d = [0.30, 0.20, 0.20];
-                } else if (this.colorScheme === 'cosine4') {
-                    // Rainbow
-                    a = [0.5, 0.5, 0.5];
-                    b = [0.5, 0.5, 0.5];
-                    c = [2.0, 1.0, 0.0];
-                    d = [0.50, 0.20, 0.25];
-                } else if (this.colorScheme === 'cosine5') {
-                    // Sunset
-                    a = [0.8, 0.5, 0.4];
-                    b = [0.2, 0.4, 0.2];
-                    c = [2.0, 1.0, 1.0];
-                    d = [0.0, 0.25, 0.25];
-                } else if (this.colorScheme === 'cosine6') {
-                    // Forest
-                    a = [0.3, 0.5, 0.3];
-                    b = [0.3, 0.5, 0.3];
-                    c = [1.0, 1.0, 0.5];
-                    d = [0.0, 0.1, 0.3];
-                }
+                const accent = {
+                    r: this.cosineAccentColor.r / 255,
+                    g: this.cosineAccentColor.g / 255,
+                    b: this.cosineAccentColor.b / 255
+                };
+                
+                // Calculate midpoint and amplitude for cosine function
+                // a = midpoint between base and accent
+                // b = half the distance between them (amplitude)
+                const a = [
+                    (base.r + accent.r) / 2,
+                    (base.g + accent.g) / 2,
+                    (base.b + accent.b) / 2
+                ];
+                
+                const b = [
+                    (accent.r - base.r) / 2,
+                    (accent.g - base.g) / 2,
+                    (accent.b - base.b) / 2
+                ];
+                
+                // Use cosine function with configurable frequency
+                const c = [1.0, 1.0, 1.0]; // Frequency
+                const d = [0.0, 0.33, 0.67]; // Phase shift for each channel
 
                 const r = Math.floor(255 * (a[0] + b[0] * Math.cos(2 * Math.PI * (c[0] * t + d[0]))));
                 const g = Math.floor(255 * (a[1] + b[1] * Math.cos(2 * Math.PI * (c[1] * t + d[1]))));
