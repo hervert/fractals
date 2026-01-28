@@ -219,6 +219,56 @@
             <input type="color" id="cosineAccentColor" value="#ff8080" style="width: 100%; height: 35px; border: none; border-radius: 4px; cursor: pointer;">
         </div>
 
+        <div class="menu-section" id="hslControls" style="display: none;">
+            <label>Start Hue (0-360°)</label>
+            <input type="range" id="hslStartHue" min="0" max="360" value="240" style="width: 100%;">
+            <span id="hslStartHueValue" style="font-size: 11px; color: #666;">240°</span>
+            
+            <label style="margin-top: 8px;">End Hue (0-360°)</label>
+            <input type="range" id="hslEndHue" min="0" max="360" value="0" style="width: 100%;">
+            <span id="hslEndHueValue" style="font-size: 11px; color: #666;">0°</span>
+        </div>
+
+        <div class="menu-section" id="bezierControls" style="display: none;">
+            <label style="margin-bottom: 8px; display: block;">Color Points</label>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                <div>
+                    <label style="font-size: 10px; color: #666;">Start</label>
+                    <input type="color" id="bezierColor0" value="#0a1464" style="width: 100%; height: 30px; border: none; border-radius: 4px; cursor: pointer;">
+                </div>
+                <div>
+                    <label style="font-size: 10px; color: #666;">Point 1</label>
+                    <input type="color" id="bezierColor1" value="#0096c8" style="width: 100%; height: 30px; border: none; border-radius: 4px; cursor: pointer;">
+                </div>
+                <div>
+                    <label style="font-size: 10px; color: #666;">Point 2</label>
+                    <input type="color" id="bezierColor2" value="#ffdc32" style="width: 100%; height: 30px; border: none; border-radius: 4px; cursor: pointer;">
+                </div>
+                <div>
+                    <label style="font-size: 10px; color: #666;">End</label>
+                    <input type="color" id="bezierColor3" value="#c8320a" style="width: 100%; height: 30px; border: none; border-radius: 4px; cursor: pointer;">
+                </div>
+            </div>
+        </div>
+
+        <div class="menu-section" id="complementaryControls" style="display: none;">
+            <label>Base Hue (0-360°)</label>
+            <input type="range" id="complementaryHue" min="0" max="360" value="220" style="width: 100%;">
+            <span id="complementaryHueValue" style="font-size: 11px; color: #666;">220°</span>
+        </div>
+
+        <div class="menu-section" id="triadicControls" style="display: none;">
+            <label>Base Hue (0-360°)</label>
+            <input type="range" id="triadicHue" min="0" max="360" value="0" style="width: 100%;">
+            <span id="triadicHueValue" style="font-size: 11px; color: #666;">0°</span>
+        </div>
+
+        <div class="menu-section" id="cubehelixControls" style="display: none;">
+            <label>Rotations</label>
+            <input type="range" id="cubehelixRotations" min="-3" max="3" step="0.1" value="-1.5" style="width: 100%;">
+            <span id="cubehelixRotationsValue" style="font-size: 11px; color: #666;">-1.5</span>
+        </div>
+
         <div class="button-group">
             <button id="resetBtn" class="secondary">Reset View</button>
             <button id="renderBtn">Render</button>
@@ -260,6 +310,25 @@
                 // Cosine gradient colors
                 this.cosineBaseColor = { r: 128, g: 128, b: 255 }; // Purple-blue
                 this.cosineAccentColor = { r: 255, g: 128, b: 128 }; // Pink-red
+                
+                // HSL parameters
+                this.hslStartHue = 240;
+                this.hslEndHue = 0;
+                
+                // Bezier parameters
+                this.bezierColors = [
+                    { r: 10, g: 20, b: 100 },
+                    { r: 0, g: 150, b: 200 },
+                    { r: 255, g: 220, b: 50 },
+                    { r: 200, g: 50, b: 10 }
+                ];
+                
+                // Complementary/Triadic base hues
+                this.complementaryHue = 220;
+                this.triadicHue = 0;
+                
+                // Cubehelix rotations
+                this.cubehelixRotations = -1.5;
                 
                 // Julia Set parameters
                 this.juliaReal = -0.8;
@@ -464,6 +533,48 @@
                     this.render();
                 });
 
+                // HSL controls
+                document.getElementById('hslStartHue').addEventListener('input', (e) => {
+                    this.hslStartHue = parseInt(e.target.value);
+                    document.getElementById('hslStartHueValue').textContent = this.hslStartHue + '°';
+                    this.render();
+                });
+
+                document.getElementById('hslEndHue').addEventListener('input', (e) => {
+                    this.hslEndHue = parseInt(e.target.value);
+                    document.getElementById('hslEndHueValue').textContent = this.hslEndHue + '°';
+                    this.render();
+                });
+
+                // Bezier controls
+                for (let i = 0; i < 4; i++) {
+                    document.getElementById(`bezierColor${i}`).addEventListener('input', (e) => {
+                        this.bezierColors[i] = this.hexToRgb(e.target.value);
+                        this.render();
+                    });
+                }
+
+                // Complementary control
+                document.getElementById('complementaryHue').addEventListener('input', (e) => {
+                    this.complementaryHue = parseInt(e.target.value);
+                    document.getElementById('complementaryHueValue').textContent = this.complementaryHue + '°';
+                    this.render();
+                });
+
+                // Triadic control
+                document.getElementById('triadicHue').addEventListener('input', (e) => {
+                    this.triadicHue = parseInt(e.target.value);
+                    document.getElementById('triadicHueValue').textContent = this.triadicHue + '°';
+                    this.render();
+                });
+
+                // Cubehelix control
+                document.getElementById('cubehelixRotations').addEventListener('input', (e) => {
+                    this.cubehelixRotations = parseFloat(e.target.value);
+                    document.getElementById('cubehelixRotationsValue').textContent = this.cubehelixRotations.toFixed(1);
+                    this.render();
+                });
+
                 document.getElementById('renderBtn').addEventListener('click', () => {
                     this.render();
                 });
@@ -490,12 +601,34 @@
             }
 
             updateCosineControls() {
-                const cosineControls = document.getElementById('cosineControls');
+                // Hide all color control sections
+                document.getElementById('cosineControls').style.display = 'none';
+                document.getElementById('hslControls').style.display = 'none';
+                document.getElementById('bezierControls').style.display = 'none';
+                document.getElementById('complementaryControls').style.display = 'none';
+                document.getElementById('triadicControls').style.display = 'none';
+                document.getElementById('cubehelixControls').style.display = 'none';
                 
-                if (this.colorScheme === 'cosine') {
-                    cosineControls.style.display = 'block';
-                } else {
-                    cosineControls.style.display = 'none';
+                // Show relevant controls based on scheme
+                switch(this.colorScheme) {
+                    case 'cosine':
+                        document.getElementById('cosineControls').style.display = 'block';
+                        break;
+                    case 'hsl':
+                        document.getElementById('hslControls').style.display = 'block';
+                        break;
+                    case 'bezier':
+                        document.getElementById('bezierControls').style.display = 'block';
+                        break;
+                    case 'complementary':
+                        document.getElementById('complementaryControls').style.display = 'block';
+                        break;
+                    case 'triadic':
+                        document.getElementById('triadicControls').style.display = 'block';
+                        break;
+                    case 'cubehelix':
+                        document.getElementById('cubehelixControls').style.display = 'block';
+                        break;
                 }
             }
 
@@ -787,9 +920,9 @@
             }
 
             getColorHSL(iteration) {
-                // Simple HSL interpolation from blue to red
+                // HSL interpolation with customizable start and end hues
                 const t = iteration / this.maxIterations;
-                const hue = 240 - t * 240; // Blue (240) to Red (0)
+                const hue = this.hslStartHue + (this.hslEndHue - this.hslStartHue) * t;
                 const saturation = 80;
                 const lightness = 50;
                 return this.hslToRgb(hue, saturation, lightness);
@@ -805,11 +938,10 @@
             }
 
             getColorCubehelix(iteration) {
-                // Cubehelix color scheme - monotonic lightness
+                // Cubehelix color scheme with customizable rotations
                 const t = iteration / this.maxIterations;
                 const start = 0.5; // Start hue
-                const rotations = -1.5; // Number of rotations
-                const hue = 360 * (start / 3 + rotations * t);
+                const hue = 360 * (start / 3 + this.cubehelixRotations * t);
                 const saturation = 50 + 50 * t;
                 const lightness = 20 + 60 * t; // Monotonically increasing
                 return this.hslToRgb(hue, saturation, lightness);
@@ -823,46 +955,43 @@
             }
 
             getColorBezier(iteration) {
-                // Bezier curve interpolation through RGB control points
+                // Bezier curve interpolation through customizable RGB control points
                 const t = iteration / this.maxIterations;
                 
-                // Control points: dark blue -> cyan -> yellow -> red
-                const p0 = [10, 20, 100];
-                const p1 = [0, 150, 200];
-                const p2 = [255, 220, 50];
-                const p3 = [200, 50, 10];
+                const p0 = this.bezierColors[0];
+                const p1 = this.bezierColors[1];
+                const p2 = this.bezierColors[2];
+                const p3 = this.bezierColors[3];
 
                 // Cubic Bezier interpolation
                 const s = 1 - t;
-                const r = s*s*s * p0[0] + 3*s*s*t * p1[0] + 3*s*t*t * p2[0] + t*t*t * p3[0];
-                const g = s*s*s * p0[1] + 3*s*s*t * p1[1] + 3*s*t*t * p2[1] + t*t*t * p3[1];
-                const b = s*s*s * p0[2] + 3*s*s*t * p1[2] + 3*s*t*t * p2[2] + t*t*t * p3[2];
+                const r = s*s*s * p0.r + 3*s*s*t * p1.r + 3*s*t*t * p2.r + t*t*t * p3.r;
+                const g = s*s*s * p0.g + 3*s*s*t * p1.g + 3*s*t*t * p2.g + t*t*t * p3.g;
+                const b = s*s*s * p0.b + 3*s*s*t * p1.b + 3*s*t*t * p2.b + t*t*t * p3.b;
 
                 return [Math.floor(r), Math.floor(g), Math.floor(b)];
             }
 
             getColorComplementary(iteration) {
-                // Complementary color harmony (opposite sides of color wheel)
+                // Complementary color harmony with customizable base hue
                 const t = iteration / this.maxIterations;
                 // Oscillate between complementary colors
-                const base = 220; // Blue
-                const hue = t < 0.5 ? base : (base + 180) % 360;
+                const hue = t < 0.5 ? this.complementaryHue : (this.complementaryHue + 180) % 360;
                 const saturation = 80;
                 const lightness = 40 + 20 * Math.sin(t * Math.PI * 4);
                 return this.hslToRgb(hue, saturation, lightness);
             }
 
             getColorTriadic(iteration) {
-                // Triadic color harmony (120° apart on color wheel)
+                // Triadic color harmony with customizable base hue
                 const t = iteration / this.maxIterations;
-                const base = 0; // Red
                 let hue;
                 if (t < 0.33) {
-                    hue = base;
+                    hue = this.triadicHue;
                 } else if (t < 0.66) {
-                    hue = (base + 120) % 360; // Green
+                    hue = (this.triadicHue + 120) % 360;
                 } else {
-                    hue = (base + 240) % 360; // Blue
+                    hue = (this.triadicHue + 240) % 360;
                 }
                 const saturation = 70;
                 const lightness = 45 + 15 * Math.sin(t * Math.PI * 6);
