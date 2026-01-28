@@ -111,7 +111,7 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.9);
+            background: rgba(0, 0, 0, 0.85);
             color: white;
             padding: 20px 40px;
             border-radius: 8px;
@@ -119,6 +119,7 @@
             display: none;
             min-width: 250px;
             text-align: center;
+            backdrop-filter: blur(5px);
         }
 
         .loading.active {
@@ -782,31 +783,40 @@
                 const width = this.canvas.width;
                 const height = this.canvas.height;
 
-                // Clear canvas
-                this.ctx.fillStyle = '#000';
-                this.ctx.fillRect(0, 0, width, height);
+                // Don't clear canvas - keep previous fractal visible while rendering
 
                 if (this.fractalType === 'mandelbrot') {
-                    this.renderMandelbrot();
+                    await this.renderMandelbrot();
                 } else if (this.fractalType === 'julia') {
-                    this.renderJulia();
+                    await this.renderJulia();
                 } else if (this.fractalType === 'koch') {
+                    // Clear for geometric fractals
+                    this.ctx.fillStyle = '#000';
+                    this.ctx.fillRect(0, 0, width, height);
                     this.updateProgress(50);
                     this.renderKoch();
                     this.updateProgress(100);
                 } else if (this.fractalType === 'sierpinski') {
+                    this.ctx.fillStyle = '#000';
+                    this.ctx.fillRect(0, 0, width, height);
                     this.updateProgress(50);
                     this.renderSierpinski();
                     this.updateProgress(100);
                 } else if (this.fractalType === 'dragon') {
+                    this.ctx.fillStyle = '#000';
+                    this.ctx.fillRect(0, 0, width, height);
                     this.updateProgress(50);
                     this.renderDragon();
                     this.updateProgress(100);
                 } else if (this.fractalType === 'barnsley') {
+                    this.ctx.fillStyle = '#000';
+                    this.ctx.fillRect(0, 0, width, height);
                     this.updateProgress(50);
                     this.renderBarnsley();
                     this.updateProgress(100);
                 } else if (this.fractalType === 'menger') {
+                    this.ctx.fillStyle = '#000';
+                    this.ctx.fillRect(0, 0, width, height);
                     this.updateProgress(50);
                     this.renderMenger();
                     this.updateProgress(100);
@@ -815,21 +825,16 @@
                 this.loading.classList.remove('active');
             }
 
-            renderMandelbrot() {
+            async renderMandelbrot() {
                 const width = this.canvas.width;
                 const height = this.canvas.height;
                 const imageData = this.ctx.createImageData(width, height);
                 const data = imageData.data;
 
                 const scale = 3.5 / (this.zoom * width);
+                const chunkSize = 20; // Update progress every 20 rows
 
                 for (let py = 0; py < height; py++) {
-                    // Update progress every 10 rows
-                    if (py % 10 === 0) {
-                        const progress = (py / height) * 100;
-                        this.updateProgress(progress);
-                    }
-
                     for (let px = 0; px < width; px++) {
                         const x0 = this.centerX + (px - width / 2) * scale;
                         const y0 = this.centerY + (py - height / 2) * scale;
@@ -843,27 +848,30 @@
                         data[index + 2] = b;
                         data[index + 3] = 255;
                     }
+
+                    // Update progress but DON'T draw to canvas yet
+                    if (py % chunkSize === 0) {
+                        const progress = (py / height) * 100;
+                        this.updateProgress(progress);
+                        await new Promise(resolve => setTimeout(resolve, 0));
+                    }
                 }
 
                 this.updateProgress(100);
+                // Draw complete image all at once
                 this.ctx.putImageData(imageData, 0, 0);
             }
 
-            renderJulia() {
+            async renderJulia() {
                 const width = this.canvas.width;
                 const height = this.canvas.height;
                 const imageData = this.ctx.createImageData(width, height);
                 const data = imageData.data;
 
                 const scale = 3.5 / (this.zoom * width);
+                const chunkSize = 20; // Update progress every 20 rows
 
                 for (let py = 0; py < height; py++) {
-                    // Update progress every 10 rows
-                    if (py % 10 === 0) {
-                        const progress = (py / height) * 100;
-                        this.updateProgress(progress);
-                    }
-
                     for (let px = 0; px < width; px++) {
                         const zx = this.centerX + (px - width / 2) * scale;
                         const zy = this.centerY + (py - height / 2) * scale;
@@ -877,9 +885,17 @@
                         data[index + 2] = b;
                         data[index + 3] = 255;
                     }
+
+                    // Update progress but DON'T draw to canvas yet
+                    if (py % chunkSize === 0) {
+                        const progress = (py / height) * 100;
+                        this.updateProgress(progress);
+                        await new Promise(resolve => setTimeout(resolve, 0));
+                    }
                 }
 
                 this.updateProgress(100);
+                // Draw complete image all at once
                 this.ctx.putImageData(imageData, 0, 0);
             }
 
