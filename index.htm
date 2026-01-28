@@ -198,11 +198,21 @@
             <label>Color Scheme</label>
             <select id="colorScheme">
                 <option value="default">Default (Polynomial)</option>
-                <option value="cosine1">Cosine Gradient 1</option>
-                <option value="cosine2">Cosine Gradient 2 (Fire)</option>
-                <option value="cosine3">Cosine Gradient 3 (Ocean)</option>
-                <option value="cosine4">Cosine Gradient 4 (Rainbow)</option>
-                <option value="continuous">Continuous Coloring</option>
+                <option value="cosine1">Cosine: Purple-Blue</option>
+                <option value="cosine2">Cosine: Fire</option>
+                <option value="cosine3">Cosine: Ocean</option>
+                <option value="cosine4">Cosine: Rainbow</option>
+                <option value="cosine5">Cosine: Sunset</option>
+                <option value="cosine6">Cosine: Forest</option>
+                <option value="continuous">Continuous (HSL)</option>
+                <option value="hsl">HSL Interpolation</option>
+                <option value="golden">Golden Ratio</option>
+                <option value="cubehelix">Cubehelix</option>
+                <option value="grayscale">Grayscale</option>
+                <option value="bezier">Bezier RGB</option>
+                <option value="complementary">Complementary</option>
+                <option value="triadic">Triadic</option>
+                <option value="stripe">Stripe Averaging</option>
             </select>
         </div>
 
@@ -265,6 +275,7 @@
                 this.lastY = 0;
                 this.zoomBoxStart = { x: 0, y: 0 };
                 this.zoomBoxEnd = { x: 0, y: 0 };
+                this.savedImageData = null; // For storing canvas state during zoom box
                 
                 this.setupCanvas();
                 this.setupEventListeners();
@@ -299,6 +310,8 @@
                         this.zoomBoxStart.y = e.clientY;
                         this.zoomBoxEnd.x = e.clientX;
                         this.zoomBoxEnd.y = e.clientY;
+                        // Save current canvas state
+                        this.savedImageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
                     }
                 });
 
@@ -318,6 +331,8 @@
                     } else if (this.isZoomBoxing) {
                         this.zoomBoxEnd.x = e.clientX;
                         this.zoomBoxEnd.y = e.clientY;
+                        // Restore saved image and draw zoom box
+                        this.ctx.putImageData(this.savedImageData, 0, 0);
                         this.drawZoomBox();
                     }
                 });
@@ -325,6 +340,7 @@
                 this.canvas.addEventListener('mouseup', (e) => {
                     if (this.isZoomBoxing && e.button === 0) {
                         this.isZoomBoxing = false;
+                        this.savedImageData = null;
                         this.executeZoomBox();
                     }
                     this.isDragging = false;
@@ -333,8 +349,12 @@
                 this.canvas.addEventListener('mouseleave', () => {
                     this.isDragging = false;
                     if (this.isZoomBoxing) {
+                        // Restore canvas if zoom box was cancelled
+                        if (this.savedImageData) {
+                            this.ctx.putImageData(this.savedImageData, 0, 0);
+                        }
                         this.isZoomBoxing = false;
-                        this.render();
+                        this.savedImageData = null;
                     }
                 });
 
@@ -487,24 +507,22 @@
             }
 
             drawZoomBox() {
-                // Redraw the current fractal
-                this.render().then(() => {
-                    // Draw the zoom box overlay
-                    const x1 = Math.min(this.zoomBoxStart.x, this.zoomBoxEnd.x);
-                    const y1 = Math.min(this.zoomBoxStart.y, this.zoomBoxEnd.y);
-                    const width = Math.abs(this.zoomBoxEnd.x - this.zoomBoxStart.x);
-                    const height = Math.abs(this.zoomBoxEnd.y - this.zoomBoxStart.y);
+                // Draw the zoom box overlay without re-rendering the fractal
+                const x1 = Math.min(this.zoomBoxStart.x, this.zoomBoxEnd.x);
+                const y1 = Math.min(this.zoomBoxStart.y, this.zoomBoxEnd.y);
+                const width = Math.abs(this.zoomBoxEnd.x - this.zoomBoxStart.x);
+                const height = Math.abs(this.zoomBoxEnd.y - this.zoomBoxStart.y);
 
-                    this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-                    this.ctx.lineWidth = 2;
-                    this.ctx.setLineDash([5, 5]);
-                    this.ctx.strokeRect(x1, y1, width, height);
-                    
-                    this.ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-                    this.ctx.fillRect(x1, y1, width, height);
-                    
-                    this.ctx.setLineDash([]);
-                });
+                // Just draw the box overlay directly on top of existing canvas
+                this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+                this.ctx.lineWidth = 2;
+                this.ctx.setLineDash([5, 5]);
+                this.ctx.strokeRect(x1, y1, width, height);
+                
+                this.ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+                this.ctx.fillRect(x1, y1, width, height);
+                
+                this.ctx.setLineDash([]);
             }
 
             executeZoomBox() {
@@ -601,15 +619,37 @@
                     return [0, 0, 0];
                 }
 
-                if (this.colorScheme === 'default') {
-                    return this.getColorDefault(iteration);
-                } else if (this.colorScheme.startsWith('cosine')) {
-                    return this.getColorCosine(iteration);
-                } else if (this.colorScheme === 'continuous') {
-                    return this.getColorContinuous(iteration);
+                switch(this.colorScheme) {
+                    case 'default':
+                        return this.getColorDefault(iteration);
+                    case 'cosine1':
+                    case 'cosine2':
+                    case 'cosine3':
+                    case 'cosine4':
+                    case 'cosine5':
+                    case 'cosine6':
+                        return this.getColorCosine(iteration);
+                    case 'continuous':
+                        return this.getColorContinuous(iteration);
+                    case 'hsl':
+                        return this.getColorHSL(iteration);
+                    case 'golden':
+                        return this.getColorGolden(iteration);
+                    case 'cubehelix':
+                        return this.getColorCubehelix(iteration);
+                    case 'grayscale':
+                        return this.getColorGrayscale(iteration);
+                    case 'bezier':
+                        return this.getColorBezier(iteration);
+                    case 'complementary':
+                        return this.getColorComplementary(iteration);
+                    case 'triadic':
+                        return this.getColorTriadic(iteration);
+                    case 'stripe':
+                        return this.getColorStripe(iteration);
+                    default:
+                        return this.getColorDefault(iteration);
                 }
-                
-                return this.getColorDefault(iteration);
             }
 
             getColorDefault(iteration) {
@@ -652,6 +692,18 @@
                     b = [0.5, 0.5, 0.5];
                     c = [2.0, 1.0, 0.0];
                     d = [0.50, 0.20, 0.25];
+                } else if (this.colorScheme === 'cosine5') {
+                    // Sunset
+                    a = [0.8, 0.5, 0.4];
+                    b = [0.2, 0.4, 0.2];
+                    c = [2.0, 1.0, 1.0];
+                    d = [0.0, 0.25, 0.25];
+                } else if (this.colorScheme === 'cosine6') {
+                    // Forest
+                    a = [0.3, 0.5, 0.3];
+                    b = [0.3, 0.5, 0.3];
+                    c = [1.0, 1.0, 0.5];
+                    d = [0.0, 0.1, 0.3];
                 }
 
                 const r = Math.floor(255 * (a[0] + b[0] * Math.cos(2 * Math.PI * (c[0] * t + d[0]))));
@@ -707,6 +759,104 @@
                 }
 
                 return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+            }
+
+            getColorHSL(iteration) {
+                // Simple HSL interpolation from blue to red
+                const t = iteration / this.maxIterations;
+                const hue = 240 - t * 240; // Blue (240) to Red (0)
+                const saturation = 80;
+                const lightness = 50;
+                return this.hslToRgb(hue, saturation, lightness);
+            }
+
+            getColorGolden(iteration) {
+                // Golden ratio based hue distribution
+                const phi = 1.618033988749895; // Golden ratio
+                const hue = (iteration * phi * 137.508) % 360; // Golden angle
+                const saturation = 70;
+                const lightness = 50;
+                return this.hslToRgb(hue, saturation, lightness);
+            }
+
+            getColorCubehelix(iteration) {
+                // Cubehelix color scheme - monotonic lightness
+                const t = iteration / this.maxIterations;
+                const start = 0.5; // Start hue
+                const rotations = -1.5; // Number of rotations
+                const hue = 360 * (start / 3 + rotations * t);
+                const saturation = 50 + 50 * t;
+                const lightness = 20 + 60 * t; // Monotonically increasing
+                return this.hslToRgb(hue, saturation, lightness);
+            }
+
+            getColorGrayscale(iteration) {
+                // Simple grayscale with smooth gradation
+                const t = iteration / this.maxIterations;
+                const intensity = Math.floor(255 * Math.sqrt(t));
+                return [intensity, intensity, intensity];
+            }
+
+            getColorBezier(iteration) {
+                // Bezier curve interpolation through RGB control points
+                const t = iteration / this.maxIterations;
+                
+                // Control points: dark blue -> cyan -> yellow -> red
+                const p0 = [10, 20, 100];
+                const p1 = [0, 150, 200];
+                const p2 = [255, 220, 50];
+                const p3 = [200, 50, 10];
+
+                // Cubic Bezier interpolation
+                const s = 1 - t;
+                const r = s*s*s * p0[0] + 3*s*s*t * p1[0] + 3*s*t*t * p2[0] + t*t*t * p3[0];
+                const g = s*s*s * p0[1] + 3*s*s*t * p1[1] + 3*s*t*t * p2[1] + t*t*t * p3[1];
+                const b = s*s*s * p0[2] + 3*s*s*t * p1[2] + 3*s*t*t * p2[2] + t*t*t * p3[2];
+
+                return [Math.floor(r), Math.floor(g), Math.floor(b)];
+            }
+
+            getColorComplementary(iteration) {
+                // Complementary color harmony (opposite sides of color wheel)
+                const t = iteration / this.maxIterations;
+                // Oscillate between complementary colors
+                const base = 220; // Blue
+                const hue = t < 0.5 ? base : (base + 180) % 360;
+                const saturation = 80;
+                const lightness = 40 + 20 * Math.sin(t * Math.PI * 4);
+                return this.hslToRgb(hue, saturation, lightness);
+            }
+
+            getColorTriadic(iteration) {
+                // Triadic color harmony (120° apart on color wheel)
+                const t = iteration / this.maxIterations;
+                const base = 0; // Red
+                let hue;
+                if (t < 0.33) {
+                    hue = base;
+                } else if (t < 0.66) {
+                    hue = (base + 120) % 360; // Green
+                } else {
+                    hue = (base + 240) % 360; // Blue
+                }
+                const saturation = 70;
+                const lightness = 45 + 15 * Math.sin(t * Math.PI * 6);
+                return this.hslToRgb(hue, saturation, lightness);
+            }
+
+            getColorStripe(iteration) {
+                // Stripe averaging effect - creates interesting banding
+                const t = iteration / this.maxIterations;
+                // Create color bands with smooth transitions
+                const bands = 8;
+                const bandIndex = Math.floor(t * bands);
+                const bandT = (t * bands) - bandIndex;
+                
+                const hue = (bandIndex * 45) % 360;
+                const saturation = 70 + 20 * Math.sin(bandT * Math.PI);
+                const lightness = 40 + 20 * bandT;
+                
+                return this.hslToRgb(hue, saturation, lightness);
             }
 
             // Koch Snowflake methods
