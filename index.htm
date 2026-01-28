@@ -111,16 +111,41 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.9);
             color: white;
-            padding: 15px 30px;
+            padding: 20px 40px;
             border-radius: 8px;
             font-size: 14px;
             display: none;
+            min-width: 250px;
+            text-align: center;
         }
 
         .loading.active {
             display: block;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            margin-top: 12px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #2196F3);
+            width: 0%;
+            transition: width 0.1s ease;
+            border-radius: 4px;
+        }
+
+        .progress-text {
+            margin-top: 8px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.8);
         }
     </style>
 </head>
@@ -181,7 +206,13 @@
         </div>
     </div>
 
-    <div class="loading" id="loading">Rendering...</div>
+    <div class="loading" id="loading">
+        <div id="loadingText">Rendering...</div>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <div class="progress-text" id="progressText">0%</div>
+    </div>
 
     <script>
         class FractalViewer {
@@ -189,6 +220,8 @@
                 this.canvas = document.getElementById('canvas');
                 this.ctx = this.canvas.getContext('2d');
                 this.loading = document.getElementById('loading');
+                this.progressFill = document.getElementById('progressFill');
+                this.progressText = document.getElementById('progressText');
                 
                 // Fractal parameters
                 this.fractalType = 'mandelbrot';
@@ -395,6 +428,11 @@
                     juliaControls.style.display = 'none';
                     juliaParams.style.display = 'none';
                 }
+            }
+
+            updateProgress(percent) {
+                this.progressFill.style.width = percent + '%';
+                this.progressText.textContent = Math.floor(percent) + '%';
             }
 
             resetView() {
@@ -736,6 +774,7 @@
 
             async render() {
                 this.loading.classList.add('active');
+                this.updateProgress(0);
                 
                 // Small delay to allow UI to update
                 await new Promise(resolve => setTimeout(resolve, 10));
@@ -752,15 +791,25 @@
                 } else if (this.fractalType === 'julia') {
                     this.renderJulia();
                 } else if (this.fractalType === 'koch') {
+                    this.updateProgress(50);
                     this.renderKoch();
+                    this.updateProgress(100);
                 } else if (this.fractalType === 'sierpinski') {
+                    this.updateProgress(50);
                     this.renderSierpinski();
+                    this.updateProgress(100);
                 } else if (this.fractalType === 'dragon') {
+                    this.updateProgress(50);
                     this.renderDragon();
+                    this.updateProgress(100);
                 } else if (this.fractalType === 'barnsley') {
+                    this.updateProgress(50);
                     this.renderBarnsley();
+                    this.updateProgress(100);
                 } else if (this.fractalType === 'menger') {
+                    this.updateProgress(50);
                     this.renderMenger();
+                    this.updateProgress(100);
                 }
 
                 this.loading.classList.remove('active');
@@ -775,6 +824,12 @@
                 const scale = 3.5 / (this.zoom * width);
 
                 for (let py = 0; py < height; py++) {
+                    // Update progress every 10 rows
+                    if (py % 10 === 0) {
+                        const progress = (py / height) * 100;
+                        this.updateProgress(progress);
+                    }
+
                     for (let px = 0; px < width; px++) {
                         const x0 = this.centerX + (px - width / 2) * scale;
                         const y0 = this.centerY + (py - height / 2) * scale;
@@ -790,6 +845,7 @@
                     }
                 }
 
+                this.updateProgress(100);
                 this.ctx.putImageData(imageData, 0, 0);
             }
 
@@ -802,6 +858,12 @@
                 const scale = 3.5 / (this.zoom * width);
 
                 for (let py = 0; py < height; py++) {
+                    // Update progress every 10 rows
+                    if (py % 10 === 0) {
+                        const progress = (py / height) * 100;
+                        this.updateProgress(progress);
+                    }
+
                     for (let px = 0; px < width; px++) {
                         const zx = this.centerX + (px - width / 2) * scale;
                         const zy = this.centerY + (py - height / 2) * scale;
@@ -817,6 +879,7 @@
                     }
                 }
 
+                this.updateProgress(100);
                 this.ctx.putImageData(imageData, 0, 0);
             }
 
