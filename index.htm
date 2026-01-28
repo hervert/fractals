@@ -150,7 +150,8 @@
         </div>
 
         <div class="info">
-            Click and drag to pan<br>
+            Left-click and drag to zoom box<br>
+            Right-click and drag to pan<br>
             Scroll to zoom<br>
             Double-click to zoom in
         </div>
@@ -174,8 +175,11 @@
                 
                 // Mouse interaction
                 this.isDragging = false;
+                this.isZoomBoxing = false;
                 this.lastX = 0;
                 this.lastY = 0;
+                this.zoomBoxStart = { x: 0, y: 0 };
+                this.zoomBoxEnd = { x: 0, y: 0 };
                 
                 this.setupCanvas();
                 this.setupEventListeners();
@@ -194,11 +198,23 @@
                     this.render();
                 });
 
-                // Mouse dragging for panning
+                // Mouse dragging for panning and zoom box
                 this.canvas.addEventListener('mousedown', (e) => {
-                    this.isDragging = true;
-                    this.lastX = e.clientX;
-                    this.lastY = e.clientY;
+                    // Right-click or Ctrl+Click for panning
+                    if (e.button === 2 || e.ctrlKey) {
+                        e.preventDefault();
+                        this.isDragging = true;
+                        this.lastX = e.clientX;
+                        this.lastY = e.clientY;
+                    } 
+                    // Left-click for zoom box
+                    else if (e.button === 0 && !e.ctrlKey) {
+                        this.isZoomBoxing = true;
+                        this.zoomBoxStart.x = e.clientX;
+                        this.zoomBoxStart.y = e.clientY;
+                        this.zoomBoxEnd.x = e.clientX;
+                        this.zoomBoxEnd.y = e.clientY;
+                    }
                 });
 
                 this.canvas.addEventListener('mousemove', (e) => {
@@ -214,15 +230,32 @@
                         this.lastY = e.clientY;
                         
                         this.render();
+                    } else if (this.isZoomBoxing) {
+                        this.zoomBoxEnd.x = e.clientX;
+                        this.zoomBoxEnd.y = e.clientY;
+                        this.drawZoomBox();
                     }
                 });
 
-                this.canvas.addEventListener('mouseup', () => {
+                this.canvas.addEventListener('mouseup', (e) => {
+                    if (this.isZoomBoxing && e.button === 0) {
+                        this.isZoomBoxing = false;
+                        this.executeZoomBox();
+                    }
                     this.isDragging = false;
                 });
 
                 this.canvas.addEventListener('mouseleave', () => {
                     this.isDragging = false;
+                    if (this.isZoomBoxing) {
+                        this.isZoomBoxing = false;
+                        this.render();
+                    }
+                });
+
+                // Prevent context menu on right-click
+                this.canvas.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
                 });
 
                 // Mouse wheel for zooming
@@ -298,6 +331,62 @@
                     this.centerY = 0.1;
                     this.zoom = 1.8;
                 }
+            }
+
+            drawZoomBox() {
+                // Redraw the current fractal
+                this.render().then(() => {
+                    // Draw the zoom box overlay
+                    const x1 = Math.min(this.zoomBoxStart.x, this.zoomBoxEnd.x);
+                    const y1 = Math.min(this.zoomBoxStart.y, this.zoomBoxEnd.y);
+                    const width = Math.abs(this.zoomBoxEnd.x - this.zoomBoxStart.x);
+                    const height = Math.abs(this.zoomBoxEnd.y - this.zoomBoxStart.y);
+
+                    this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+                    this.ctx.lineWidth = 2;
+                    this.ctx.setLineDash([5, 5]);
+                    this.ctx.strokeRect(x1, y1, width, height);
+                    
+                    this.ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+                    this.ctx.fillRect(x1, y1, width, height);
+                    
+                    this.ctx.setLineDash([]);
+                });
+            }
+
+            executeZoomBox() {
+                const x1 = Math.min(this.zoomBoxStart.x, this.zoomBoxEnd.x);
+                const y1 = Math.min(this.zoomBoxStart.y, this.zoomBoxEnd.y);
+                const x2 = Math.max(this.zoomBoxStart.x, this.zoomBoxEnd.x);
+                const y2 = Math.max(this.zoomBoxStart.y, this.zoomBoxEnd.y);
+
+                const width = x2 - x1;
+                const height = y2 - y1;
+
+                // Ignore very small boxes (likely accidental clicks)
+                if (width < 10 || height < 10) {
+                    this.render();
+                    return;
+                }
+
+                // Calculate the center of the zoom box in world coordinates
+                const centerScreenX = (x1 + x2) / 2;
+                const centerScreenY = (y1 + y2) / 2;
+                
+                const newCenterX = this.screenToWorldX(centerScreenX);
+                const newCenterY = this.screenToWorldY(centerScreenY);
+
+                // Calculate the zoom factor based on the box size
+                const zoomFactorX = this.canvas.width / width;
+                const zoomFactorY = this.canvas.height / height;
+                const zoomFactor = Math.min(zoomFactorX, zoomFactorY);
+
+                // Update view
+                this.centerX = newCenterX;
+                this.centerY = newCenterY;
+                this.zoom *= zoomFactor;
+
+                this.render();
             }
 
             screenToWorldX(screenX) {
