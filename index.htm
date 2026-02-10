@@ -1020,30 +1020,35 @@
                     this.ctx.fillStyle = '#000';
                     this.ctx.fillRect(0, 0, width, height);
                     this.updateProgress(50);
+                    await new Promise(resolve => setTimeout(resolve, 0));
                     this.fractals.koch.render();
                     this.updateProgress(100);
                 } else if (this.fractalType === 'sierpinski') {
                     this.ctx.fillStyle = '#000';
                     this.ctx.fillRect(0, 0, width, height);
                     this.updateProgress(50);
+                    await new Promise(resolve => setTimeout(resolve, 0));
                     this.fractals.sierpinski.render();
                     this.updateProgress(100);
                 } else if (this.fractalType === 'dragon') {
                     this.ctx.fillStyle = '#000';
                     this.ctx.fillRect(0, 0, width, height);
                     this.updateProgress(50);
+                    await new Promise(resolve => setTimeout(resolve, 0));
                     this.fractals.dragon.render();
                     this.updateProgress(100);
                 } else if (this.fractalType === 'barnsley') {
                     this.ctx.fillStyle = '#000';
                     this.ctx.fillRect(0, 0, width, height);
                     this.updateProgress(50);
+                    await new Promise(resolve => setTimeout(resolve, 0));
                     this.fractals.barnsley.render();
                     this.updateProgress(100);
                 } else if (this.fractalType === 'menger') {
                     this.ctx.fillStyle = '#000';
                     this.ctx.fillRect(0, 0, width, height);
                     this.updateProgress(50);
+                    await new Promise(resolve => setTimeout(resolve, 0));
                     this.fractals.menger.render();
                     this.updateProgress(100);
                 }
