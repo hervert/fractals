@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fractal Viewer</title>
     <link rel="stylesheet" href="style.css">
+    <script src="decimal.min.js"></script>
     <script src="webgl-renderer.js"></script>
     <script src="viewer.js"></script>
     <script src="colors.js"></script>
@@ -182,6 +183,15 @@
         <div class="button-group">
             <button id="resetBtn" class="secondary">Reset View</button>
             <button id="renderBtn">Render</button>
+        </div>
+
+        <div class="menu-section" style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 12px;">
+            <div style="font-size: 11px; color: #aaa; line-height: 1.6;">
+                <div id="zoomDisplay">Zoom: 1.0x</div>
+                <div id="precisionMode" style="color: #FFA726; display: none; margin-top: 4px;">
+                    High Precision Mode
+                </div>
+            </div>
         </div>
 
         <div class="info">

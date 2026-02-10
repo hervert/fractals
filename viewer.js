@@ -441,6 +441,7 @@ class FractalViewer {
                 this.lastX = e.clientX;
                 this.lastY = e.clientY;
 
+                this.updateZoomDisplay();
                 this.render();
             } else if (this.isZoomBoxing) {
                 this.zoomBoxEnd.x = e.clientX;
@@ -500,6 +501,7 @@ class FractalViewer {
             this.centerX += worldX - newWorldX;
             this.centerY += worldY - newWorldY;
 
+            this.updateZoomDisplay();
             this.render();
         });
 
@@ -512,6 +514,7 @@ class FractalViewer {
             this.centerY = worldY;
             this.zoom *= 2;
 
+            this.updateZoomDisplay();
             this.render();
         });
 
@@ -909,6 +912,9 @@ class FractalViewer {
         this.loading.classList.add('active');
         this.updateProgress(0);
 
+        // Update zoom display
+        this.updateZoomDisplay();
+
         // Small delay to allow UI to update
         await new Promise(resolve => setTimeout(resolve, 50));
 
@@ -939,6 +945,33 @@ class FractalViewer {
         await new Promise(resolve => setTimeout(resolve, 200));
 
         this.loading.classList.remove('active');
+    }
+
+    updateZoomDisplay() {
+        const zoomDisplay = document.getElementById('zoomDisplay');
+        const precisionMode = document.getElementById('precisionMode');
+
+        if (!zoomDisplay) return;
+
+        // Format zoom level
+        let zoomText;
+        if (this.zoom >= 1e6) {
+            zoomText = `Zoom: ${this.zoom.toExponential(2)}`;
+        } else if (this.zoom >= 1000) {
+            zoomText = `Zoom: ${(this.zoom / 1000).toFixed(1)}k`;
+        } else {
+            zoomText = `Zoom: ${this.zoom.toFixed(1)}x`;
+        }
+
+        zoomDisplay.textContent = zoomText;
+
+        // Show precision mode indicator if zoom is high enough
+        const threshold = Math.pow(2, 20); // 2^20 ≈ 1 million
+        if (this.zoom > threshold && precisionMode) {
+            precisionMode.style.display = 'block';
+        } else if (precisionMode) {
+            precisionMode.style.display = 'none';
+        }
     }
 
     worldToScreenX(worldX) {

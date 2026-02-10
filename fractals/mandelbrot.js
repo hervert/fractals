@@ -27,6 +27,44 @@ class MandelbrotFractal {
         return iteration;
     }
 
+    // Arbitrary precision calculation using Decimal.js
+    calculateHighPrecision(cx, cy) {
+        const Decimal = window.Decimal;
+        let x = new Decimal(0);
+        let y = new Decimal(0);
+        let iteration = 0;
+        const four = new Decimal(4);
+        const two = new Decimal(2);
+
+        const cxD = new Decimal(cx);
+        const cyD = new Decimal(cy);
+
+        while (iteration < this.viewer.maxIterations) {
+            const x2 = x.times(x);
+            const y2 = y.times(y);
+            const magnitude = x2.plus(y2);
+
+            if (magnitude.gt(four)) break;
+
+            const xtemp = x2.minus(y2).plus(cxD);
+            y = two.times(x).times(y).plus(cyD);
+            x = xtemp;
+            iteration++;
+        }
+
+        // For continuous coloring
+        if (iteration < this.viewer.maxIterations) {
+            const x2 = x.times(x);
+            const y2 = y.times(y);
+            const magnitude = x2.plus(y2).toNumber();
+            const log_zn = Math.log(magnitude) / 2;
+            const nu = Math.log(log_zn / Math.log(2)) / Math.log(2);
+            iteration = iteration + 1 - nu;
+        }
+
+        return iteration;
+    }
+
     async render() {
         // Try WebGL rendering first if available
         if (this.viewer.webglRenderer && this.viewer.webglRenderer.initialized) {
@@ -58,12 +96,34 @@ class MandelbrotFractal {
         const scale = 3.5 / (this.viewer.zoom * width);
         const chunkSize = 20;
 
+        // Determine if we need arbitrary precision (zoom > 2^20)
+        const useArbitraryPrecision = this.viewer.zoom > Math.pow(2, 20);
+        const Decimal = window.Decimal;
+
+        // For arbitrary precision, use Decimal for scale and center calculations
+        let scaleD, centerXD, centerYD, halfWidthD, halfHeightD;
+        if (useArbitraryPrecision && Decimal) {
+            scaleD = new Decimal(3.5).div(new Decimal(this.viewer.zoom).times(width));
+            centerXD = new Decimal(this.viewer.centerX);
+            centerYD = new Decimal(this.viewer.centerY);
+            halfWidthD = new Decimal(width).div(2);
+            halfHeightD = new Decimal(height).div(2);
+        }
+
         for (let py = 0; py < height; py++) {
             for (let px = 0; px < width; px++) {
-                const x0 = this.viewer.centerX + (px - width / 2) * scale;
-                const y0 = this.viewer.centerY + (py - height / 2) * scale;
+                let iteration;
 
-                const iteration = this.calculate(x0, y0);
+                if (useArbitraryPrecision && Decimal) {
+                    const x0D = centerXD.plus(new Decimal(px).minus(halfWidthD).times(scaleD));
+                    const y0D = centerYD.plus(new Decimal(py).minus(halfHeightD).times(scaleD));
+                    iteration = this.calculateHighPrecision(x0D.toString(), y0D.toString());
+                } else {
+                    const x0 = this.viewer.centerX + (px - width / 2) * scale;
+                    const y0 = this.viewer.centerY + (py - height / 2) * scale;
+                    iteration = this.calculate(x0, y0);
+                }
+
                 const [r, g, b] = this.viewer.getColor(iteration);
 
                 const index = (py * width + px) * 4;
