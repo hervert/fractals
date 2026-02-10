@@ -5,6 +5,14 @@ class FractalViewer {
         this.canvas = document.getElementById('canvas');
         this.ctx = this.canvas.getContext('2d');
 
+        // Initialize WebGL renderer
+        this.webglRenderer = new WebGLRenderer(this.canvas);
+        if (this.webglRenderer.init()) {
+            console.log('WebGL acceleration enabled');
+        } else {
+            console.log('WebGL not available, using Canvas2D fallback');
+        }
+
         // Initialize fractal instances
         this.fractals = {
             mandelbrot: new MandelbrotFractal(this),

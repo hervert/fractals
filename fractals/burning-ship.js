@@ -31,6 +31,29 @@ class BurningShipFractal {
     }
 
     async render() {
+        // Try WebGL rendering first if available
+        if (this.viewer.webglRenderer && this.viewer.webglRenderer.initialized) {
+            const params = {
+                width: this.viewer.canvas.width,
+                height: this.viewer.canvas.height,
+                centerX: this.viewer.centerX,
+                centerY: this.viewer.centerY,
+                zoom: this.viewer.zoom,
+                maxIterations: this.viewer.maxIterations,
+                colorScheme: this.viewer.colorScheme,
+                color1: this.viewer.cosineBaseColor,
+                color2: this.viewer.cosineAccentColor
+            };
+
+            const success = this.viewer.webglRenderer.render('burning_ship', params);
+            if (success) {
+                // WebGL renders instantly, simulate progress for UI consistency
+                this.viewer.updateProgress(100);
+                return;
+            }
+        }
+
+        // Fallback to Canvas2D rendering
         const width = this.viewer.canvas.width;
         const height = this.viewer.canvas.height;
         const imageData = this.viewer.ctx.createImageData(width, height);
