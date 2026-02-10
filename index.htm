@@ -1003,53 +1003,31 @@
             async render() {
                 this.loading.classList.add('active');
                 this.updateProgress(0);
-                
+
                 // Small delay to allow UI to update
                 await new Promise(resolve => setTimeout(resolve, 10));
+
+                const fractal = this.fractals[this.fractalType];
+                if (!fractal) {
+                    console.error(`Unknown fractal type: ${this.fractalType}`);
+                    this.loading.classList.remove('active');
+                    return;
+                }
 
                 const width = this.canvas.width;
                 const height = this.canvas.height;
 
-                if (this.fractalType === 'mandelbrot') {
-                    await this.fractals.mandelbrot.render();
-                } else if (this.fractalType === 'burning_ship') {
-                    await this.fractals.burning_ship.render();
-                } else if (this.fractalType === 'julia') {
-                    await this.fractals.julia.render();
-                } else if (this.fractalType === 'koch') {
+                // Escape-time fractals (async rendering with progress updates)
+                const escapeTimeFractals = ['mandelbrot', 'burning_ship', 'julia'];
+                if (escapeTimeFractals.includes(this.fractalType)) {
+                    await fractal.render();
+                } else {
+                    // Geometric fractals (synchronous rendering)
                     this.ctx.fillStyle = '#000';
                     this.ctx.fillRect(0, 0, width, height);
                     this.updateProgress(50);
                     await new Promise(resolve => setTimeout(resolve, 0));
-                    this.fractals.koch.render();
-                    this.updateProgress(100);
-                } else if (this.fractalType === 'sierpinski') {
-                    this.ctx.fillStyle = '#000';
-                    this.ctx.fillRect(0, 0, width, height);
-                    this.updateProgress(50);
-                    await new Promise(resolve => setTimeout(resolve, 0));
-                    this.fractals.sierpinski.render();
-                    this.updateProgress(100);
-                } else if (this.fractalType === 'dragon') {
-                    this.ctx.fillStyle = '#000';
-                    this.ctx.fillRect(0, 0, width, height);
-                    this.updateProgress(50);
-                    await new Promise(resolve => setTimeout(resolve, 0));
-                    this.fractals.dragon.render();
-                    this.updateProgress(100);
-                } else if (this.fractalType === 'barnsley') {
-                    this.ctx.fillStyle = '#000';
-                    this.ctx.fillRect(0, 0, width, height);
-                    this.updateProgress(50);
-                    await new Promise(resolve => setTimeout(resolve, 0));
-                    this.fractals.barnsley.render();
-                    this.updateProgress(100);
-                } else if (this.fractalType === 'menger') {
-                    this.ctx.fillStyle = '#000';
-                    this.ctx.fillRect(0, 0, width, height);
-                    this.updateProgress(50);
-                    await new Promise(resolve => setTimeout(resolve, 0));
-                    this.fractals.menger.render();
+                    fractal.render();
                     this.updateProgress(100);
                 }
 
