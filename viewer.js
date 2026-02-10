@@ -77,6 +77,135 @@ class FractalViewer {
             siegel: { real: -0.391, imag: -0.587, name: 'Siegel Disk' }
         };
 
+        // Location presets - beautiful fractal spots
+        this.presets = [
+            {
+                name: 'Mandelbrot Overview',
+                fractalType: 'mandelbrot',
+                centerX: -0.5,
+                centerY: 0,
+                zoom: 1,
+                maxIterations: 100,
+                colorScheme: 'default'
+            },
+            {
+                name: 'Seahorse Valley',
+                fractalType: 'mandelbrot',
+                centerX: -0.743643887037151,
+                centerY: 0.131825904205330,
+                zoom: 500,
+                maxIterations: 200,
+                colorScheme: 'cosine'
+            },
+            {
+                name: 'Spiral Detail',
+                fractalType: 'mandelbrot',
+                centerX: -0.7746806106269039,
+                centerY: -0.1374168856037867,
+                zoom: 1000,
+                maxIterations: 300,
+                colorScheme: 'continuous'
+            },
+            {
+                name: 'Elephant Valley',
+                fractalType: 'mandelbrot',
+                centerX: 0.3245046418497685,
+                centerY: 0.04855101129280834,
+                zoom: 800,
+                maxIterations: 250,
+                colorScheme: 'bezier'
+            },
+            {
+                name: 'Triple Spiral',
+                fractalType: 'mandelbrot',
+                centerX: -0.088,
+                centerY: 0.654,
+                zoom: 150,
+                maxIterations: 150,
+                colorScheme: 'hsl'
+            },
+            {
+                name: 'Dendrite Julia',
+                fractalType: 'julia',
+                centerX: 0,
+                centerY: 0,
+                zoom: 1.5,
+                maxIterations: 150,
+                colorScheme: 'golden',
+                juliaReal: -0.4,
+                juliaImag: 0.6
+            },
+            {
+                name: 'Douady Rabbit',
+                fractalType: 'julia',
+                centerX: 0,
+                centerY: 0,
+                zoom: 1.5,
+                maxIterations: 200,
+                colorScheme: 'triadic',
+                juliaReal: -0.123,
+                juliaImag: 0.745
+            },
+            {
+                name: 'Dragon Julia',
+                fractalType: 'julia',
+                centerX: 0,
+                centerY: 0,
+                zoom: 1.5,
+                maxIterations: 180,
+                colorScheme: 'cosine',
+                juliaReal: -0.835,
+                juliaImag: -0.2321
+            },
+            {
+                name: 'San Marco Fractal',
+                fractalType: 'julia',
+                centerX: 0,
+                centerY: 0,
+                zoom: 1.8,
+                maxIterations: 140,
+                colorScheme: 'cubehelix',
+                juliaReal: -0.75,
+                juliaImag: 0.1
+            },
+            {
+                name: 'Burning Ship Overview',
+                fractalType: 'burning_ship',
+                centerX: -0.5,
+                centerY: -0.5,
+                zoom: 1.2,
+                maxIterations: 100,
+                colorScheme: 'default'
+            },
+            {
+                name: 'Burning Ship Detail',
+                fractalType: 'burning_ship',
+                centerX: -1.7625,
+                centerY: -0.028,
+                zoom: 300,
+                maxIterations: 250,
+                colorScheme: 'complementary'
+            },
+            {
+                name: 'Mini Mandelbrot',
+                fractalType: 'mandelbrot',
+                centerX: -0.16,
+                centerY: 1.0405,
+                zoom: 200,
+                maxIterations: 300,
+                colorScheme: 'stripe'
+            },
+            {
+                name: 'Fibonacci Spiral',
+                fractalType: 'mandelbrot',
+                centerX: -0.7,
+                centerY: 0.3,
+                zoom: 30,
+                maxIterations: 150,
+                colorScheme: 'golden'
+            }
+        ];
+
         // Mouse interaction
         this.isDragging = false;
         this.isZoomBoxing = false;
@@ -91,7 +220,175 @@ class FractalViewer {
 
         this.setupCanvas();
         this.setupEventListeners();
+
+        // Load state from URL if present
+        this.decodeStateFromURL();
+
         this.render();
+    }
+
+    // Encode current state to URL parameters
+    encodeState() {
+        const params = new URLSearchParams();
+        params.set('type', this.fractalType);
+        params.set('cx', this.centerX.toString());
+        params.set('cy', this.centerY.toString());
+        params.set('z', this.zoom.toString());
+        params.set('iter', this.maxIterations.toString());
+        params.set('color', this.colorScheme);
+
+        // Add Julia parameters if applicable
+        if (this.fractalType === 'julia') {
+            params.set('jr', this.juliaReal.toString());
+            params.set('ji', this.juliaImag.toString());
+        }
+
+        // Add color scheme specific parameters
+        if (this.colorScheme === 'cosine') {
+            params.set('c1', `${this.cosineBaseColor.r},${this.cosineBaseColor.g},${this.cosineBaseColor.b}`);
+            params.set('c2', `${this.cosineAccentColor.r},${this.cosineAccentColor.g},${this.cosineAccentColor.b}`);
+        } else if (this.colorScheme === 'hsl') {
+            params.set('h1', this.hslStartHue.toString());
+            params.set('h2', this.hslEndHue.toString());
+        } else if (this.colorScheme === 'complementary') {
+            params.set('ch', this.complementaryHue.toString());
+        } else if (this.colorScheme === 'triadic') {
+            params.set('th', this.triadicHue.toString());
+        } else if (this.colorScheme === 'cubehelix') {
+            params.set('chr', this.cubehelixRotations.toString());
+        }
+
+        return params.toString();
+    }
+
+    // Decode state from URL parameters
+    decodeStateFromURL() {
+        const params = new URLSearchParams(window.location.search);
+
+        if (params.has('type')) {
+            this.fractalType = params.get('type');
+            document.getElementById('fractalType').value = this.fractalType;
+        }
+
+        if (params.has('cx')) this.centerX = parseFloat(params.get('cx'));
+        if (params.has('cy')) this.centerY = parseFloat(params.get('cy'));
+        if (params.has('z')) this.zoom = parseFloat(params.get('z'));
+        if (params.has('iter')) {
+            this.maxIterations = parseInt(params.get('iter'));
+            document.getElementById('maxIterations').value = this.maxIterations;
+        }
+
+        if (params.has('color')) {
+            this.colorScheme = params.get('color');
+            document.getElementById('colorScheme').value = this.colorScheme;
+        }
+
+        // Julia parameters
+        if (params.has('jr')) {
+            this.juliaReal = parseFloat(params.get('jr'));
+            document.getElementById('juliaReal').value = this.juliaReal;
+        }
+        if (params.has('ji')) {
+            this.juliaImag = parseFloat(params.get('ji'));
+            document.getElementById('juliaImag').value = this.juliaImag;
+        }
+
+        // Color parameters
+        if (params.has('c1')) {
+            const [r, g, b] = params.get('c1').split(',').map(Number);
+            this.cosineBaseColor = { r, g, b };
+            const hex = this.rgbToHex(r, g, b);
+            document.getElementById('cosineBaseColor').value = hex;
+            document.getElementById('cosineBasePreview').style.background = hex;
+        }
+        if (params.has('c2')) {
+            const [r, g, b] = params.get('c2').split(',').map(Number);
+            this.cosineAccentColor = { r, g, b };
+            const hex = this.rgbToHex(r, g, b);
+            document.getElementById('cosineAccentColor').value = hex;
+            document.getElementById('cosineAccentPreview').style.background = hex;
+        }
+        if (params.has('h1')) {
+            this.hslStartHue = parseInt(params.get('h1'));
+            document.getElementById('hslStartHue').value = this.hslStartHue;
+            document.getElementById('hslStartHueValue').textContent = this.hslStartHue + '°';
+        }
+        if (params.has('h2')) {
+            this.hslEndHue = parseInt(params.get('h2'));
+            document.getElementById('hslEndHue').value = this.hslEndHue;
+            document.getElementById('hslEndHueValue').textContent = this.hslEndHue + '°';
+        }
+        if (params.has('ch')) {
+            this.complementaryHue = parseInt(params.get('ch'));
+            document.getElementById('complementaryHue').value = this.complementaryHue;
+            document.getElementById('complementaryHueValue').textContent = this.complementaryHue + '°';
+        }
+        if (params.has('th')) {
+            this.triadicHue = parseInt(params.get('th'));
+            document.getElementById('triadicHue').value = this.triadicHue;
+            document.getElementById('triadicHueValue').textContent = this.triadicHue + '°';
+        }
+        if (params.has('chr')) {
+            this.cubehelixRotations = parseFloat(params.get('chr'));
+            document.getElementById('cubehelixRotations').value = this.cubehelixRotations;
+            document.getElementById('cubehelixRotationsValue').textContent = this.cubehelixRotations.toFixed(1);
+        }
+
+        // Update UI controls visibility
+        this.updateJuliaControls();
+        this.updateCosineControls();
+    }
+
+    // Load a preset location
+    loadPreset(preset) {
+        this.fractalType = preset.fractalType;
+        this.centerX = preset.centerX;
+        this.centerY = preset.centerY;
+        this.zoom = preset.zoom;
+        this.maxIterations = preset.maxIterations;
+        this.colorScheme = preset.colorScheme;
+
+        if (preset.juliaReal !== undefined) this.juliaReal = preset.juliaReal;
+        if (preset.juliaImag !== undefined) this.juliaImag = preset.juliaImag;
+
+        // Update UI
+        document.getElementById('fractalType').value = this.fractalType;
+        document.getElementById('maxIterations').value = this.maxIterations;
+        document.getElementById('colorScheme').value = this.colorScheme;
+
+        if (this.fractalType === 'julia') {
+            document.getElementById('juliaReal').value = this.juliaReal;
+            document.getElementById('juliaImag').value = this.juliaImag;
+            document.getElementById('juliaPreset').value = 'custom';
+        }
+
+        this.updateJuliaControls();
+        this.updateCosineControls();
+        this.render();
+    }
+
+    // Copy current state to clipboard as URL
+    copyLinkToClipboard() {
+        const url = window.location.origin + window.location.pathname + '?' + this.encodeState();
+
+        // Update browser URL without reload
+        window.history.replaceState({}, '', url);
+
+        // Copy to clipboard
+        navigator.clipboard.writeText(url).then(() => {
+            // Show feedback
+            const btn = document.getElementById('copyLinkBtn');
+            const originalText = btn.textContent;
+            btn.textContent = 'Link Copied!';
+            btn.style.background = '#4CAF50';
+            setTimeout(() => {
+                btn.textContent = originalText;
+                btn.style.background = '';
+            }, 2000);
+        }).catch(err => {
+            console.error('Failed to copy link:', err);
+            alert('Failed to copy link to clipboard');
+        });
     }
 
     setupCanvas() {
@@ -225,6 +522,29 @@ class FractalViewer {
             this.updateCosineControls();
             this.resetView();
             this.render();
+        });
+
+        // Preset selector
+        const presetSelect = document.getElementById('presetSelect');
+        this.presets.forEach((preset, index) => {
+            const option = document.createElement('option');
+            option.value = index;
+            option.textContent = preset.name;
+            presetSelect.appendChild(option);
+        });
+
+        presetSelect.addEventListener('change', (e) => {
+            const index = parseInt(e.target.value);
+            if (!isNaN(index) && this.presets[index]) {
+                this.loadPreset(this.presets[index]);
+            }
+            // Reset selection to show placeholder
+            e.target.value = '';
+        });
+
+        // Copy link button
+        document.getElementById('copyLinkBtn').addEventListener('click', () => {
+            this.copyLinkToClipboard();
         });
 
         // Julia click mode buttons
@@ -629,6 +949,24 @@ class FractalViewer {
     worldToScreenY(worldY) {
         const scale = this.zoom * this.canvas.width / 3.5;
         return (worldY - this.centerY) * scale + this.canvas.height / 2;
+    }
+
+    // Helper: Convert hex color to RGB object
+    hexToRgb(hex) {
+        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? {
+            r: parseInt(result[1], 16),
+            g: parseInt(result[2], 16),
+            b: parseInt(result[3], 16)
+        } : { r: 128, g: 128, b: 128 };
+    }
+
+    // Helper: Convert RGB values to hex color
+    rgbToHex(r, g, b) {
+        return '#' + [r, g, b].map(x => {
+            const hex = Math.max(0, Math.min(255, Math.round(x))).toString(16);
+            return hex.length === 1 ? '0' + hex : hex;
+        }).join('');
     }
 }
 
