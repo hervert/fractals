@@ -1005,7 +1005,7 @@
                 this.updateProgress(0);
 
                 // Small delay to allow UI to update
-                await new Promise(resolve => setTimeout(resolve, 10));
+                await new Promise(resolve => setTimeout(resolve, 50));
 
                 const fractal = this.fractals[this.fractalType];
                 if (!fractal) {
@@ -1026,9 +1026,11 @@
                     this.ctx.fillStyle = '#000';
                     this.ctx.fillRect(0, 0, width, height);
                     this.updateProgress(50);
-                    await new Promise(resolve => setTimeout(resolve, 0));
+                    await new Promise(resolve => setTimeout(resolve, 50));
                     fractal.render();
                     this.updateProgress(100);
+                    // Brief delay so user can see completion
+                    await new Promise(resolve => setTimeout(resolve, 100));
                 }
 
                 this.loading.classList.remove('active');
