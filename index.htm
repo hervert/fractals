@@ -191,10 +191,23 @@
             constructor() {
                 this.canvas = document.getElementById('canvas');
                 this.ctx = this.canvas.getContext('2d');
+
+                // Initialize fractal instances
+                this.fractals = {
+                    mandelbrot: new MandelbrotFractal(this),
+                    julia: new JuliaFractal(this),
+                    burning_ship: new BurningShipFractal(this),
+                    koch: new KochFractal(this),
+                    sierpinski: new SierpinskiFractal(this),
+                    dragon: new DragonFractal(this),
+                    barnsley: new BarnsleyFractal(this),
+                    menger: new MengerFractal(this)
+                };
+
                 this.loading = document.getElementById('loading');
                 this.progressFill = document.getElementById('progressFill');
                 this.progressText = document.getElementById('progressText');
-                
+
                 // Fractal parameters
                 this.fractalType = 'mandelbrot';
                 this.centerX = -0.5;
@@ -998,40 +1011,40 @@
                 const height = this.canvas.height;
 
                 if (this.fractalType === 'mandelbrot') {
-                    await this.renderMandelbrot();
+                    await this.fractals.mandelbrot.render();
                 } else if (this.fractalType === 'burning_ship') {
-                    await this.renderBurningShip();
+                    await this.fractals.burning_ship.render();
                 } else if (this.fractalType === 'julia') {
-                    await this.renderJulia();
+                    await this.fractals.julia.render();
                 } else if (this.fractalType === 'koch') {
                     this.ctx.fillStyle = '#000';
                     this.ctx.fillRect(0, 0, width, height);
                     this.updateProgress(50);
-                    this.renderKoch();
+                    this.fractals.koch.render();
                     this.updateProgress(100);
                 } else if (this.fractalType === 'sierpinski') {
                     this.ctx.fillStyle = '#000';
                     this.ctx.fillRect(0, 0, width, height);
                     this.updateProgress(50);
-                    this.renderSierpinski();
+                    this.fractals.sierpinski.render();
                     this.updateProgress(100);
                 } else if (this.fractalType === 'dragon') {
                     this.ctx.fillStyle = '#000';
                     this.ctx.fillRect(0, 0, width, height);
                     this.updateProgress(50);
-                    this.renderDragon();
+                    this.fractals.dragon.render();
                     this.updateProgress(100);
                 } else if (this.fractalType === 'barnsley') {
                     this.ctx.fillStyle = '#000';
                     this.ctx.fillRect(0, 0, width, height);
                     this.updateProgress(50);
-                    this.renderBarnsley();
+                    this.fractals.barnsley.render();
                     this.updateProgress(100);
                 } else if (this.fractalType === 'menger') {
                     this.ctx.fillStyle = '#000';
                     this.ctx.fillRect(0, 0, width, height);
                     this.updateProgress(50);
-                    this.renderMenger();
+                    this.fractals.menger.render();
                     this.updateProgress(100);
                 }
 
