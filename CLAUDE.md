@@ -9,18 +9,28 @@ Modular fractal visualization app with class-based architecture — no build sys
 ## File Structure
 
 ```
-index.htm           # Main HTML, FractalViewer class, UI controls, event handlers
-style.css           # Separated stylesheet
+index.htm           # HTML markup and UI controls only
+style.css           # All styling
+viewer.js           # FractalViewer class (main controller)
+colors.js           # Color scheme methods (added to FractalViewer.prototype)
 fractals/           # Fractal implementations as ES6 classes
-  mandelbrot.js     # MandelbrotFractal class
-  julia.js          # JuliaFractal class
-  burning-ship.js   # BurningShipFractal class
-  koch.js           # KochFractal class
-  sierpinski.js     # SierpinskiFractal class
-  dragon.js         # DragonFractal class
-  barnsley.js       # BarnsleyFractal class
-  menger.js         # MengerFractal class
+  mandelbrot.js     # MandelbrotFractal class (escape-time, async)
+  julia.js          # JuliaFractal class (escape-time, async)
+  burning-ship.js   # BurningShipFractal class (escape-time, async)
+  koch.js           # KochFractal class (geometric, async)
+  sierpinski.js     # SierpinskiFractal class (geometric, async)
+  dragon.js         # DragonFractal class (geometric, async)
+  barnsley.js       # BarnsleyFractal class (geometric, async)
+  menger.js         # MengerFractal class (geometric, async)
 ```
+
+**IMPORTANT: Script Loading Order**
+Scripts must load in this exact order:
+1. `viewer.js` - Defines FractalViewer class
+2. `colors.js` - Adds methods to FractalViewer.prototype
+3. `fractals/*.js` - Reference FractalViewer in constructors
+
+Loading colors.js before viewer.js will cause `ReferenceError: FractalViewer is not defined`.
 
 ## Running
 
@@ -28,18 +38,27 @@ Open `index.htm` directly in a browser, or serve with any static file server (e.
 
 ## Architecture
 
-### FractalViewer (index.htm)
+### FractalViewer (viewer.js)
 
 Main controller class instantiated on page load. Manages canvas, UI state, user interaction, and coordinates fractal rendering.
 
 **Key responsibilities:**
 - Canvas setup and coordinate transformations (`screenToWorld{X,Y}`, `worldToScreen{X,Y}`)
 - User interaction (zoom box, pan, scroll, Julia click mode)
-- Color schemes (11 total): `getColor<Name>(iteration)` methods returning `[r, g, b]`
-- Progress tracking and UI updates
+- Progress tracking and UI updates (`updateProgress()`)
 - Fractal class instantiation and lifecycle management
+- Event handling for all UI controls
 
-**Fractal instances:** In constructor, creates `this.fractals` object with all 8 fractal class instances, passing `this` (viewer) to each constructor. The `render()` method dispatches to `this.fractals.<type>.render()`.
+**Fractal instances:** In constructor, creates `this.fractals` object with all 8 fractal class instances, passing `this` (viewer) to each constructor. The `render()` method dispatches to `this.fractals[this.fractalType].render()`.
+
+### Color Schemes (colors.js)
+
+Contains all color-related methods added to `FractalViewer.prototype`:
+- `getColor(iteration)` - Main dispatcher that calls appropriate color scheme
+- 11 color schemes: Default, Cosine, Continuous, HSL, Golden, Cubehelix, Grayscale, Bezier, Complementary, Triadic, Stripe
+- Helper methods: `hslToRgb()`, `hexToRgb()`
+
+Each color scheme method returns `[r, g, b]` array. Several have UI controls for customization.
 
 ### Fractal Classes (fractals/*.js)
 
@@ -47,12 +66,13 @@ Each fractal is an ES6 class that receives the FractalViewer instance in its con
 
 **Escape-time fractals** (Mandelbrot, Julia, Burning Ship):
 - `calculate(x, y)` — iteration function with smooth/continuous iteration count for anti-banding
-- `async render()` — pixel-by-pixel rendering into `ImageData`, yields to event loop every 20 rows for progress updates
+- `async render()` — pixel-by-pixel rendering into `ImageData`, yields to event loop every 20 rows with granular progress updates (0-100%)
 
 **Geometric fractals** (Koch, Sierpinski, Dragon, Barnsley, Menger):
 - `generate(depth)` — recursive subdivision generating point/shape arrays
-- `render()` — synchronous rendering with Canvas path API
+- `async render()` — asynchronous rendering with Canvas path API, updates progress (50% → 100%)
 - Depth derived from `viewer.maxIterations` with per-fractal divisors and caps
+- Barnsley fern yields every 5000 points with granular progress for long renders
 
 **Viewer access:** Fractals access viewer state via `this.viewer` (e.g., `this.viewer.maxIterations`, `this.viewer.canvas`, `this.viewer.getColor()`, `this.viewer.worldToScreenX()`).
 
