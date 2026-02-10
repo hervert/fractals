@@ -594,21 +594,15 @@ class FractalViewer {
         const width = this.canvas.width;
         const height = this.canvas.height;
 
-        // Escape-time fractals (async rendering with progress updates)
-        const escapeTimeFractals = ['mandelbrot', 'burning_ship', 'julia'];
-        if (escapeTimeFractals.includes(this.fractalType)) {
-            await fractal.render();
-        } else {
-            // Geometric fractals (synchronous rendering)
+        // Clear canvas with black background for geometric fractals
+        const geometricFractals = ['koch', 'sierpinski', 'dragon', 'barnsley', 'menger'];
+        if (geometricFractals.includes(this.fractalType)) {
             this.ctx.fillStyle = '#000';
             this.ctx.fillRect(0, 0, width, height);
-            this.updateProgress(50);
-            await new Promise(resolve => setTimeout(resolve, 50));
-            fractal.render();
-            this.updateProgress(100);
-            // Brief delay so user can see completion
-            await new Promise(resolve => setTimeout(resolve, 100));
         }
+
+        // All fractals now render asynchronously
+        await fractal.render();
 
         this.loading.classList.remove('active');
     }

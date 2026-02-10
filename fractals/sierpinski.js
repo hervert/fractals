@@ -36,9 +36,14 @@ class SierpinskiFractal {
         return triangles;
     }
 
-    render() {
+    async render() {
+        // Yield initially to allow progress UI to show
+        await new Promise(resolve => setTimeout(resolve, 0));
+
         const depth = Math.min(Math.floor(this.viewer.maxIterations / 10), 10);
         const triangles = this.generate(depth);
+
+        this.viewer.updateProgress(50);
 
         // Draw all triangles
         this.viewer.ctx.fillStyle = '#FF1493';
@@ -64,5 +69,7 @@ class SierpinskiFractal {
             this.viewer.ctx.fill();
             this.viewer.ctx.stroke();
         }
+
+        this.viewer.updateProgress(100);
     }
 }

@@ -41,9 +41,14 @@ class DragonFractal {
         return points;
     }
 
-    render() {
+    async render() {
+        // Yield initially to allow progress UI to show
+        await new Promise(resolve => setTimeout(resolve, 0));
+
         const depth = Math.min(Math.floor(this.viewer.maxIterations / 10), 16);
         const points = this.generate(depth);
+
+        this.viewer.updateProgress(50);
 
         this.viewer.ctx.strokeStyle = '#FFD700';
         this.viewer.ctx.lineWidth = 2;
@@ -65,5 +70,7 @@ class DragonFractal {
         }
 
         this.viewer.ctx.stroke();
+
+        this.viewer.updateProgress(100);
     }
 }

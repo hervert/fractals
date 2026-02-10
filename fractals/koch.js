@@ -61,9 +61,14 @@ class KochFractal {
             .concat(side3.slice(0, -1));
     }
 
-    render() {
+    async render() {
+        // Yield initially to allow progress UI to show
+        await new Promise(resolve => setTimeout(resolve, 0));
+
         const depth = Math.min(Math.floor(this.viewer.maxIterations / 10), 9);
         const points = this.generate(depth);
+
+        this.viewer.updateProgress(50);
 
         // Transform points to screen coordinates
         this.viewer.ctx.strokeStyle = '#00BFFF';
@@ -91,5 +96,7 @@ class KochFractal {
         // Fill the snowflake
         this.viewer.ctx.fillStyle = 'rgba(0, 191, 255, 0.1)';
         this.viewer.ctx.fill();
+
+        this.viewer.updateProgress(100);
     }
 }

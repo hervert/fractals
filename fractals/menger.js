@@ -32,9 +32,14 @@ class MengerFractal {
         return squares;
     }
 
-    render() {
+    async render() {
+        // Yield initially to allow progress UI to show
+        await new Promise(resolve => setTimeout(resolve, 0));
+
         const depth = Math.min(Math.floor(this.viewer.maxIterations / 10), 7);
         const squares = this.generate(depth);
+
+        this.viewer.updateProgress(50);
 
         this.viewer.ctx.fillStyle = '#9370DB';
         this.viewer.ctx.strokeStyle = '#8A2BE2';
@@ -52,5 +57,7 @@ class MengerFractal {
             this.viewer.ctx.fillRect(x1, y1, width, height);
             this.viewer.ctx.strokeRect(x1, y1, width, height);
         }
+
+        this.viewer.updateProgress(100);
     }
 }

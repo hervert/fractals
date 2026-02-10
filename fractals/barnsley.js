@@ -43,17 +43,32 @@ class BarnsleyFractal {
         return points;
     }
 
-    render() {
+    async render() {
+        // Yield initially to allow progress UI to show
+        await new Promise(resolve => setTimeout(resolve, 0));
+
         const iterations = Math.min(this.viewer.maxIterations * 1000, 100000);
         const points = this.generate(iterations);
 
+        this.viewer.updateProgress(50);
+
         this.viewer.ctx.fillStyle = '#00FF00';
 
-        for (const [wx, wy] of points) {
+        for (let i = 0; i < points.length; i++) {
+            const [wx, wy] = points[i];
             const sx = this.viewer.worldToScreenX(wx);
             const sy = this.viewer.worldToScreenY(wy);
 
             this.viewer.ctx.fillRect(sx, sy, 1, 1);
+
+            // Yield periodically to keep UI responsive
+            if (i % 5000 === 0) {
+                const progress = 50 + (i / points.length) * 50;
+                this.viewer.updateProgress(progress);
+                await new Promise(resolve => setTimeout(resolve, 0));
+            }
         }
+
+        this.viewer.updateProgress(100);
     }
 }
