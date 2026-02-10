@@ -449,6 +449,7 @@
 
                 document.getElementById('maxIterations').addEventListener('change', (e) => {
                     this.maxIterations = parseInt(e.target.value);
+                    this.render();
                 });
 
                 document.getElementById('colorScheme').addEventListener('change', (e) => {
@@ -1375,9 +1376,11 @@
 
                 while (x * x + y * y <= 4 && iteration < this.maxIterations) {
                     // Key difference: take absolute value before squaring
+                    x = Math.abs(x);
+                    y = Math.abs(y);
                     const xtemp = x * x - y * y + cx;
-                    y = Math.abs(2 * x * y) + cy;
-                    x = Math.abs(xtemp);
+                    y = 2 * x * y + cy;
+                    x = xtemp;
                     iteration++;
                 }
 
