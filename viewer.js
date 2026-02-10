@@ -604,6 +604,12 @@ class FractalViewer {
         // All fractals now render asynchronously
         await fractal.render();
 
+        // Ensure progress shows 100% completion
+        this.updateProgress(100);
+
+        // Brief delay so user can see completion
+        await new Promise(resolve => setTimeout(resolve, 200));
+
         this.loading.classList.remove('active');
     }
 
